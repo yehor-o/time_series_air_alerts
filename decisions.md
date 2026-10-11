@@ -153,7 +153,7 @@ The channel's **last post is #338380 at 2026-09-07 06:09 UTC**, the same point w
 
 Threat type is not reported systematically, which confirms the user's note. A full scrape (~17k pages, ~5h) is not done; it waits for a decision.
 
-## D19. Gap filler: JustJimer/ukraine-air-alert-stats archive (alerts.in.ua) — Proposed
+## D19. Gap filler: JustJimer/ukraine-air-alert-stats archive (alerts.in.ua) — Accepted (2026-10-11)
 **Source:** https://github.com/JustJimer/ukraine-air-alert-stats, file `archive/alerts_in_ua.csv`. A GitHub Action pulls the alerts.in.ua API ("last month" for every region) daily and upserts records by API id. We can read it **without our own API key**.
 **Facts (checked 2026-10-11, archive HEAD 2026-10-11 10:07 UTC):**
 - 19,016 records. **Complete from about 2026-09-06 12:00 UTC → today.** Earlier rows are only a few long-running alerts (permanent Luhansk/Crimea sirens, etc.).
@@ -168,3 +168,47 @@ Threat type is not reported systematically, which confirms the user's note. A fu
 - The archive is a third-party repo with no LICENSE file. Credit it, and pin the commit we use.
 - Records get upserted (end times filled in later). That's fine for historical labels. For features we still use only what was known at t.
 - 6 of 150 six-hour bins have zero alerts nationwide; check whether these are real calm periods or sync holes.
+
+### D19 follow-up: hole check (2026-10-11)
+- **Volunteer alerts after 2026-09-06 12:00 vs the archive:** 95.1% are "explained" by the archive (an API alert in the same oblast starts within ±10 min or is already active).
+- **The 253 unexplained alerts are concentrated in Lviv (117) and Volyn (79), then Kherson (30) and Kyiv City (15).**
+  - Lviv has only 50 API raion alerts in that period. Either the volunteer source records west-Ukraine alerts the API doesn't (e.g. nationwide ballistic/MiG threats), or the API misses some.
+  - This is **unresolved**: check against the @air_alert_ua messages once they're scraped.
+- **Real hole: 2026-10-07 about 00:12–04:02 UTC.** The archive has **no** new alerts, while the volunteer data shows about 10 oblast alerts (Kyiv, Kharkiv, Dnipro, Mykolaiv, …) 03:05–04:00 UTC. The sources agree again from 04:02.
+  - Plan: fill such holes from the volunteer data (oblast-level alert → all raions of the oblast), with a `source=volunteer` flag.
+- The "6 empty 6-hour bins" mentioned earlier were before 2026-09-06 12:00, when the archive wasn't yet complete. Not a problem.
+
+## D20. Artillery warnings inside the official dataset — finding (2026-10-11)
+**Method:** the Vadimkin parser sets `started_at` = the Telegram message time. Each official row is matched to the @air_alert_ua message that created it, by exact timestamp. Coverage: rows inside the windows scraped so far (5,165 rows); 93% matched.
+**Findings:**
+- **512 of 5,165 rows (≈10%) are artillery warnings ("🔴 Загроза артобстрілу!"), not air raids.** The parser treats every 🔴 message as an alert.
+- **All of them are at hromada level: 512 of 678 hromada rows (76%).** Raion and oblast rows contain no artillery.
+- They are concentrated in frontline communities: Nikopol 190, Pokrovska 127, Chervonohryhorivka 84, Marhanets 83. Median duration is 79 min.
+- A few hromada rows are drone threats ("Загроза ударних БпЛА", 7) or urban fights (1).
+- The archive (alerts.in.ua) labels these separately (`alert_type` = artillery_shelling / urban_fights), so it needs no cleaning.
+
+**Proposal:** when the full scrape is done, label every official row by its message type and keep only air raids. Until then, use the rule "drop hromada-level rows". It removes all artillery but also about 18% of hromada rows that are real air raids. These are tiny areas, so the impact is small.
+
+## D16 results: spatial options compared (2026-10-11)
+Script: `scripts/explore_spatial_options.py`. Full tables: `reports/spatial_options.md`.
+- Setup: official data with hromada rows dropped and old oblast-wide alerts copied to every raion. 121 raions, 24 oblasts (incl. Kyiv City). The same LightGBM, the same 13 features and the same periods for every option.
+  - Train 2025-06-01 → 2026-08-09; evaluate 2026-08-10 → 2026-09-06 (before the reform; the real test period stays untouched).
+- **Raion-level truth** (new alert starts in the raion):
+
+  | | 1h AUC | 1h Brier skill | 3h AUC | 3h Brier skill |
+  |---|---|---|---|---|
+  | O1 oblast model | 0.770 | −0.001 | 0.808 | 0.168 |
+  | **O3 raion model** | **0.839** | **0.141** | **0.849** | **0.282** |
+  | O4 hierarchical (oblast × share) | 0.738 | 0.032 | 0.806 | 0.180 |
+
+- **Oblast-level truth:** the oblast model is best (1h AUC 0.855, skill 0.17; 3h AUC 0.864, skill 0.32). Combining raion probabilities as if they were independent, 1 − ∏(1 − p), badly over-predicts (skill −0.70 at 1h): raions in one oblast are strongly correlated.
+- **Conclusion (Proposed):** use the raion model (O3) for the district map, plus a separate oblast model for the oblast view. Do NOT build oblast probabilities from raion probabilities.
+- Caveats: a single 4-week window, untuned models, pre-reform period.
+
+## D21. Yellow/red — first numbers for the brainstorm (archive, 2026-09-06 → 10-11, raion + Kyiv City alerts)
+- 37% of alerts are red. Red is a bit more common at night (00–06 Kyiv: 43%; other blocks 33–36%).
+- It varies hugely by oblast: west 6–8% red (Rivne, Ternopil, Volyn, Khmelnytskyi); frontline 60–84% (Zaporizhzhia, Donetsk, Dnipropetrovsk).
+- **Persistence:** P(red | the previous alert in the same raion was red) = 0.61; P(red | previous was yellow) = 0.22. So the level is fairly predictable from recent history.
+- Median duration: yellow 42 min, red 56 min.
+- 188 of 16,470 alerts switch level with no gap in between (escalation or de-escalation).
+- The daily share of red ranges from 0.20 to 1.00 (std 0.15). Some days are all-red (massive missile attacks?).

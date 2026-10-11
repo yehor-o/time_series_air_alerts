@@ -53,14 +53,15 @@ def fetch_page(channel, before=None, session=None):
     return sorted(posts, key=lambda p: p["id"])
 
 
-def scrape(channel, out, until=None, delay=1.0, max_pages=None):
-    """Walk backwards from the newest post until `until` (ISO date, UTC) or the channel start."""
+def scrape(channel, out, until=None, delay=1.0, max_pages=None, start_before=None, stop_id=None):
+    """Walk backwards from the newest post (or from `start_before`) until `until` (ISO date, UTC),
+    `stop_id`, or the channel start. Several runs with disjoint id ranges can run in parallel."""
     out = Path(out)
     out.parent.mkdir(parents=True, exist_ok=True)
     seen = set()
     if out.exists():
         seen = {json.loads(line)["id"] for line in out.open(encoding="utf-8")}
-    before, pages = (min(seen) if seen else None), 0
+    before, pages = (min(seen) if seen else start_before), 0
     with requests.Session() as session, out.open("a", encoding="utf-8") as f:
         while True:
             posts = fetch_page(channel, before, session)
@@ -73,7 +74,8 @@ def scrape(channel, out, until=None, delay=1.0, max_pages=None):
             before, pages = posts[0]["id"], pages + 1
             oldest = posts[0]["published"]
             print(f"page {pages}: posts {posts[0]['id']}-{posts[-1]['id']}, oldest {oldest}", flush=True)
-            if (until and oldest and oldest < until) or (max_pages and pages >= max_pages):
+            if (until and oldest and oldest < until) or (max_pages and pages >= max_pages) \
+                    or (stop_id and posts[0]["id"] <= stop_id):
                 break
             time.sleep(delay)
     return len(seen)
@@ -86,5 +88,7 @@ if __name__ == "__main__":
     ap.add_argument("--until", help="stop once posts are older than this UTC date, e.g. 2026-01-01")
     ap.add_argument("--delay", type=float, default=1.0, help="seconds between requests (be polite)")
     ap.add_argument("--max-pages", type=int)
+    ap.add_argument("--start-before", type=int, help="start below this post id instead of the newest post")
+    ap.add_argument("--stop-id", type=int, help="stop once posts at or below this id are reached")
     a = ap.parse_args()
-    print("total posts saved:", scrape(a.channel, a.out, a.until, a.delay, a.max_pages))
+    print("total posts saved:", scrape(a.channel, a.out, a.until, a.delay, a.max_pages, a.start_before, a.stop_id))
