@@ -22,6 +22,18 @@ The user owns this project and must understand and approve what happens.
 2. **Report everything you did**, including commands that only read or inspect things. End each work block with a short handoff: done / not done / next / questions.
 3. **Explain, don't just do.** The user is learning. When you introduce a concept (a model, a metric, a feature, leakage, calibration, etc.), explain it in plain English: what it is, why we use it, and what the numbers mean. Avoid unexplained jargon. Give analogies when helpful.
 4. Never present a result you did not actually compute. If something failed or was skipped, say so.
+5. **Approved websites only.** The environment has full network access, but Claude may only visit sites the user approved:
+   - `github.com` / `raw.githubusercontent.com`: the Vadimkin dataset and this repo
+   - `t.me`: the public web preview of `@war_monitor`
+   - `pypi.org`: package installs (approved for Python libraries)
+
+   Anything else (e.g. `alerts.in.ua`, news sites, other Telegram channels) needs approval first. Add each newly approved site to this list.
+
+## Git workflow (agreed)
+
+- Work always happens on a dedicated branch (for this session: `claude/quirky-maxwell-imel4t`). Commit and push there freely.
+- When the user says **"merge in main"**: push, open a PR into `main`, merge it.
+- Never push directly to `main` otherwise.
 
 ## THE core rule: no data leakage
 
@@ -38,7 +50,7 @@ A forecast is made at time **t** (the "issue time"). Everything the model uses m
 
 ## Conventions
 
-- Language: Python 3. Main libs: pandas, numpy, scikit-learn, LightGBM (others only with approval).
+- Language: Python 3.13 in a virtualenv: `python3 -m venv .venv && . .venv/bin/activate && pip install -r requirements.txt`. Main libs: pandas, numpy, scikit-learn, LightGBM, plus requests, beautifulsoup4 and lxml for scraping, matplotlib, pyarrow and pytest. Add new libraries only with approval.
 - All timestamps are stored in **UTC**. Calendar features (hour of day, weekday) are computed in **Europe/Kyiv** local time.
 - Spatial unit: **oblast** (see `decisions.md`).
 - Code goes in `src/`, scripts and pipeline steps in `scripts/`, exploration in `notebooks/`, website in `site/`, results (metrics, figures, prediction JSON) in `reports/`.

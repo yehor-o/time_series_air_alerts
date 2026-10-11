@@ -24,7 +24,7 @@ It contains two datasets:
 **Exclusions:** **Luhanska oblast** has had a permanent siren since 2022-04-04, so there is nothing to forecast there. Exclude it. Crimea has a permanent siren too, but it is not in the data.
 **Alternatives:** raion level (more detailed, but only consistent from Dec 2025, which leaves too little history and the official data is stale).
 
-## D4. Forecast target and issue times — Proposed
+## D4. Forecast target and issue times — Accepted (2026-10-11)
 - A forecast is issued **every hour on the hour** (t = HH:00 UTC), for every oblast.
 - **Primary target:** `y_h(t) = 1` if **a new alert starts** in oblast r during (t, t+h], for h ∈ {1h, 3h, 24h}.
 - **Why "starts" rather than "is active":** if an alert is already active at t, "active within the next hour" is almost always true. That would make the task trivially easy and inflate the scores. Whether an alert is currently active is still used as an input feature.
@@ -75,9 +75,12 @@ One model per horizon (1h, 3h, 24h), shared across oblasts, with the oblast as a
 - This happens after the alert-only models work.
 - **It must be evaluated as an ablation:** the same model and same splits, **with vs without** Telegram features, and the difference is reported.
 - Only messages with publication time < t are used.
-- **Access method is still undecided and needs the user's approval.** Options:
-  - the public web preview `t.me/s/war_monitor` (no account, limited history);
-  - Telethon (needs the user's Telegram API credentials).
+- **Access method: Accepted (2026-10-11).** Use the public web preview `t.me/s/war_monitor` (script `scripts/scrape_telegram.py`). Fallback: Telethon with the user's credentials.
+  - Checked: the preview reaches the **full history**, back to 2022 (posts #1980 ≈ 2022-08-28, latest #47555 ≈ 2026-10-11), at 20 posts per page.
+- **Leakage caveats specific to Telegram:**
+  1. Posts can be **edited** after publication. The preview shows only the final text and an "edited" flag. Edited posts may contain information added later, so we can drop them, or measure how many there are and decide.
+  2. Deleted posts are invisible, so we can't fully reconstruct "what was visible at time t".
+  3. The channel has gaps ("technical works" posts, e.g. 2026-10-10/11). Features must handle a missing feed and must not read it as "calm".
 - Telegram data must cover the training period, not only the test period. Otherwise the model can't learn from it.
 
 ## D11. Website — Accepted
@@ -88,3 +91,28 @@ One model per horizon (1h, 3h, 24h), shared across oblasts, with the oblast as a
 
 ## D12. Raw data storage — Proposed
 Do not commit the raw CSVs (the whole cloned dataset repo is about 130 MB). A script `scripts/download_data.py` downloads them into `data/raw/`, which is gitignored. The script records the dataset commit hash so that every result can be reproduced.
+
+## D13. District (raion) level forecasts — Proposed (brainstorm later)
+**Context:** The user wants raion-level forecasts if possible. Raion alerts are the main mode since about Dec 2025.
+**Data available:**
+- **Official Vadimkin data:** raion and hromada rows through 2026-09-07. It stopped updating, which needs verifying.
+- **Volunteer data:** oblast only, up to date.
+- **alerts.in.ua API:** we have **no key yet**, and history is about the last month only.
+**Ideas to evaluate:**
+- (a) Model **oblast** first (main deliverable). Then add a raion model trained on official raion data, Dec 2025 → Sep 2026.
+- (b) Fill the gap between 2026-09-07 and now with the alerts.in.ua API once a key arrives (needs approval of the site and the key).
+- (c) A hierarchical approach: P(raion alert) = P(oblast alert) × P(raion | oblast alert), where the second factor comes from the raion data.
+**Adaptation without a key:** the oblast pipeline doesn't depend on the API. Raion work starts only if time allows.
+
+## D14. Threat type (yellow = drones, red = missiles) from Telegram — Proposed
+**Context:** The alert datasets have no threat type. @war_monitor posts do: emojis and keywords, for example:
+- `🟣` / "Загроза балістики" (ballistic threat), "спуск балістики" (ballistic missile descending)
+- "Циркон" (Zircon)
+- "БпЛА" (UAV / drone), "реактив" (jet-powered drone)
+- "Стратегічна авіація" (strategic aviation), "ракетоносій" (missile carrier)
+- `⚪️` "Відбій" (all clear)
+
+**Idea:** a keyword-based classifier labels each post as drone / missile / ballistic / aviation-KAB / all-clear / summary. These labels feed (1) features and (2) later, possibly, an approximate threat-type target.
+
+## D15. Telegram raw data storage — Proposed
+Telegram history can change (edits, deletions), so a re-scrape is not perfectly reproducible. The raw JSONL lives in `data/raw/` (gitignored). A **processed, de-duplicated snapshot** with the scrape date will be committed (or published as a release asset if it is too big), so results can be reproduced.

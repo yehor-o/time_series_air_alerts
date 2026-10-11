@@ -3,13 +3,15 @@
 _Last updated: 2026-10-11 (Sun)_
 
 ## Status
-**Phase 0, planning.** No code yet. The context files are written. Several decisions in `decisions.md` are waiting for the user's approval (status `Proposed`).
+**Phase 0 → Phase 5 data collection started early.** Telegram scraping works and is running in the background (target: posts back to 2024-01-01). No modelling code yet.
 
 ## What exists
 - `CLAUDE.md`: rules, including the no-leakage protocol and the working agreement (ask before acting, explain everything)
-- `decisions.md`: decisions D1–D12
+- `decisions.md`: decisions D1–D15
 - `tasks.md`: phased task list with priorities for the deadline
 - `Project-State.md`: this file
+- `requirements.txt` + `.venv/` (local only): Python 3.13 with pandas, numpy, scikit-learn, LightGBM, requests, bs4, lxml, matplotlib, pyarrow, pytest
+- `scripts/scrape_telegram.py`: scraper for public Telegram channels → `data/raw/telegram/<channel>.jsonl` (gitignored)
 
 ## Facts established so far
 Source: a scratch clone of the dataset repo, inspected 2026-10-11. Dataset repo HEAD at that time: commit dated 2026-10-11 04:50 UTC.
@@ -36,11 +38,28 @@ Source: a scratch clone of the dataset repo, inspected 2026-10-11. Dataset repo 
 - No threat-type column (drone/missile).
 - No permanent sirens (Luhansk since 2022-04-04, Crimea).
 
+**Telegram @war_monitor** (checked 2026-10-11)
+- The public preview works and reaches the full history: post #1980 is from 2022-08-28; the newest post, #47555, from 2026-10-11.
+- Posts are short, real-time, in Ukrainian. They carry:
+  - the threat type: drones "БпЛА", jet drones "реактив", "Циркон", ballistic "балістика" / `🟣`, all clear "Відбій" / `⚪️`;
+  - places (oblast, city, raion names) and directions ("вектор", "курс");
+  - counts ("13х БпЛА");
+  - daily situation summaries ("Обстановка станом на 00:00"): strategic aviation, missile carriers at sea. These could help predict massive night attacks.
+- Caveats:
+  - The channel is somewhat Kyiv-centric.
+  - It has "technical works" gaps (e.g. 2026-10-10/11).
+  - Posts can be edited (we record an `edited` flag).
+
 ## Open questions for the user
-1. Approve or change the `Proposed` decisions (D2, D3, D4, D6, D8, D9 list, D12).
-2. Is the deadline Monday 23:59 **Kyiv time**?
-3. Who creates the Netlify site (your account)? When?
-4. Permission to push the context files to branch `claude/quirky-maxwell-imel4t`.
+1. Who creates the Netlify site (your account)? When?
+2. alerts.in.ua: the API key isn't here yet. Once it arrives, approve the site and give the key as an environment variable, never in the repo.
+
+## Answered
+- D4 accepted. The other Proposed decisions get settled during implementation.
+- Deadline: Monday 2026-10-12 23:59 **Kyiv time**.
+- Git: work on a branch; on "merge in main" → push, PR, merge.
+- Python libraries: installation approved.
+- Telegram: option A (public web preview) approved, with t.me allowed.
 
 ## Latest results
 None yet.

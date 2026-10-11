@@ -7,8 +7,10 @@ Every task ends with a short explanation for the user of what was done and why.
 - [x] Agree on the task understanding with the user
 - [x] Inspect the Vadimkin dataset (structure, coverage, freshness)
 - [x] Write the context files (CLAUDE.md, Project-State.md, tasks.md, decisions.md)
-- [ ] **P0** User reviews `decisions.md` and accepts or changes the `Proposed` items
-- [ ] **P0** Repo skeleton (`src/`, `scripts/`, `notebooks/`, `site/`, `reports/`, `data/`), `.gitignore`, `requirements.txt` *(needs approval to install packages)*
+- [x] User reviewed decisions: D4 accepted; the others will be settled during implementation
+- [x] Python venv + libraries installed (`requirements.txt`), `.gitignore`
+- [ ] **P0** Repo skeleton (`src/`, `notebooks/`, `site/`, `reports/`)
+- [ ] **P0** Create `main` on GitHub (the repo is empty) and set up the branch → PR → merge workflow
 - [ ] **P0** `scripts/download_data.py`: download the datasets and record the commit hash
 
 ## Phase 1 — Data understanding (EDA)
@@ -49,11 +51,19 @@ Every task ends with a short explanation for the user of what was done and why.
 - [ ] **P2** Ukrainian translation
 
 ## Phase 5 — Telegram (@war_monitor) — after Phase 3 works
-- [ ] **P1** Decide the access method with the user (web preview vs Telethon); check how much history we can get
-- [ ] **P1** Collect messages with publication timestamps
+- [x] Decide the access method → public web preview (D10); full history since 2022 is reachable
+- [x] Scraper `scripts/scrape_telegram.py` (pagination, retries, edited flag)
+- [ ] **P1** Collect messages since 2024-01-01 *(running)*
+- [ ] **P1** Data audit: posts per day, gaps / "technical works" periods, share of edited posts, which oblasts and cities get mentioned
+- [ ] **P1** Keyword classifier: drone / jet drone / missile / ballistic / KAB / strategic aviation / all-clear / daily summary (D14)
 - [ ] **P1** Features: message counts in the last 1h/3h/6h; keywords (e.g. "massive attack", "shahed", "missile", "tu-95", oblast names); evening warnings about a night attack
 - [ ] **P1** Ablation: the same model with vs without Telegram features, on the same splits
-- [ ] **P2** Infer the threat type (drone/missile) from the text
+- [ ] **P2** Threat-type target (yellow/red) inferred from Telegram (D14)
+
+## Phase 5b — District (raion) level (D13, brainstorm first)
+- [ ] **P2** Brainstorm with the user: hierarchical oblast→raion vs a separate raion model
+- [ ] **P2** Check the official raion data, Dec 2025 → 2026-09-07 (coverage, number of raions)
+- [ ] **P2** alerts.in.ua API to fill the gap since 2026-09-07 *(blocked: no API key yet; site needs approval)*
 
 ## Phase 6 — Wrap-up
 - [ ] **P0** README: what the project does, how to run it, results
