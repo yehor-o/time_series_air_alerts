@@ -18,37 +18,37 @@ Every task ends with a short explanation for the user of what was done and why.
 - [x] Spatial options compared: raion model + oblast model (D16 results, D22)
 - [x] First yellow/red statistics (D21)
 - [x] @war_monitor full history scraped (46,492 posts)
-- [ ] **P0** @air_alert_ua full history scrape *(running: 4 parallel id ranges, about 50% done)*
-- [ ] **P0** Label every official row by its message type; keep only air raids (D25)
-- [ ] **P0** Investigate the Lviv/Volyn volunteer-vs-archive mismatch and report to the user (D26)
-- [ ] **P0** Verify volunteer gap fills against @air_alert_ua / @war_monitor before using them (D26)
+- [ ] **P0** @air_alert_ua full history scrape *(running overnight, nearly done)*
+- [x] Label every official row by its message type; keep only air raids (D25, D28) — `src/alerts/telegram.py`
+- [x] Lviv/Volyn investigated: a volunteer-side quirk, not an archive gap (D30)
+- [x] Holes verified with @war_monitor; Oct 7 masked for raions (D29)
 
 ## Phase 2 — Data pipeline (approved)
-- [ ] **P0** `scripts/download_data.py`: Vadimkin + JustJimer archive at pinned commits
-- [ ] **P0** Clean alert table, raion level:
+- [x] `scripts/download_data.py`: Vadimkin + JustJimer archive at pinned commits (`data/versions.json`)
+- [x] Clean alert table, raion level (`scripts/build_alert_table.py`, report `reports/data_quality.md`):
   - official air raids only;
   - plus the archive from 2026-09-06 12:00 UTC;
   - plus verified volunteer patches;
   - a `source` column and a yellow/red `level` column (from the reform on).
-- [ ] **P0** Disaggregation: oblast-wide alerts → every raion; merge overlapping alerts per unit
-- [ ] **P0** Oblast table: union of its raions (for the oblast model)
+- [x] Disaggregation: oblast-wide alerts → every raion; merge overlapping alerts per unit (`src/alerts/build.py`)
+- [x] Oblast table: union of its raions (for the oblast model)
 - [ ] **P1** EDA charts with plain-English notes: alerts over time, the daytime shift, per-oblast and per-raion rates, durations
 
 ## Phase 3 — Forecasting table + leakage tests (approved)
-- [ ] **P0** Hourly panel per raion and per oblast (issue time t = every hour)
-- [ ] **P0** Targets (D23):
+- [x] Hourly panel per raion and per oblast (`src/alerts/features.py`, `scripts/build_panel.py`)
+- [x] Targets (D23, D33):
   - 1h/3h: new alert + its duration;
   - 24h: count, hours under alert, timing;
   - red share given an alert (D24).
-- [ ] **P0** Features:
+- [x] Features:
   - current state;
   - recent counts (unit, oblast, nation);
   - hour-of-day rates (the daytime-drone regime);
   - night-alert probability;
   - recent yellow/red levels;
   - calendar (Kyiv time).
-- [ ] **P0** Leakage unit tests (deleting all data after t must not change any feature at t)
-- [ ] **P0** Chronological splits: walk-forward validation folds; test = the last 4 weeks (from about 2026-09-13), used once
+- [x] Leakage unit tests (`tests/test_leakage.py`, 7 passing)
+- [x] Chronological splits: 4 weekly walk-forward folds; test from 2026-09-13 (D31)
 
 ## Phase 4 — Models and evaluation (approved)
 - [ ] **P0** Baselines: same hour last 14 days, persistence

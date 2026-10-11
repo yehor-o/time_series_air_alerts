@@ -239,3 +239,54 @@ Script: `scripts/explore_spatial_options.py`. Full tables: `reports/spatial_opti
 ## D26. Filling holes with volunteer data — Accepted, with verification
 - Before using a volunteer alert to fill a hole in the archive (e.g. 2026-10-07 ~00:12–04:02 UTC), **verify it** against @air_alert_ua (before 2026-09-07) and @war_monitor posts (threat activity in that oblast around that time).
 - Investigate why Lviv and Volyn have many volunteer alerts the archive lacks, and report the findings to the user.
+
+---
+# Overnight decisions (2026-10-11/12) — all Proposed, for the user's review
+
+## D27. What counts as an alert in a raion — Proposed
+- A raion is "under alert" when there is an air-raid alert for the raion itself, for its whole oblast (disaggregation, D22), or for a hromada or city inside it (e.g. "м. Харків" → Kharkivskyi raion). In words: "an alert somewhere in the raion".
+- Official rows whose message could not be found (`unknown`): kept at oblast/raion level, where artillery and threat messages never occur, and dropped at hromada level, where most messages are artillery threats. Counts are in `reports/data_quality.md`.
+- Name fixes: three raions renamed in 2024 (Володимирський, Шептицький, Берестинський) are mapped to the official old names, and the 7 archive cities to their raions (`src/alerts/sources.py`).
+
+## D28. Message types excluded from targets — Proposed
+The labelling (D25) found these types besides air raids in @air_alert_ua:
+- artillery threats;
+- urban fights;
+- typed threats: strike drones "Загроза ударних БпЛА", missiles "Ракетна загроза", ballistic "Загроза балістики", guided bombs (KAB) "Загроза керованих авіабомб";
+- radiation danger.
+
+Only `air_raid` rows define targets. The typed threats are **kept as possible features** (they carry the threat type), mainly for Zaporizhzhia city.
+
+## D29. Archive holes — Proposed
+- A hole is an archive silence of ≥ 2 h nationwide while @war_monitor posts ≥ 10 threat messages.
+- Example: 2026-10-07 00:12–04:02 UTC, during a massive Kh-101 cruise-missile attack (48 threat posts).
+- During a hole, raion truth is unknown, so targets overlapping the window are set to NaN (excluded from training and scoring). Oblast truth gets volunteer patches for alerts not already covered by an active archive alert (none were needed for Oct 7).
+
+## D30. Volunteer quirk in Lviv, Volyn, Kherson — Proposed (D26 finding)
+- The volunteer source records many more alerts there than the official system:
+  - Lviv: about 5/day volunteer vs about 0.5/day official before the reform;
+  - after the reform: 117 of 134 Lviv volunteer alerts are not in the archive.
+- @war_monitor never mentions these oblasts around the unexplained alerts.
+- Conclusion: a volunteer-side quirk, not an archive gap. These alerts are never used as patches.
+
+## D31. Time grid and splits — Proposed
+- Issue times: every hour from 2024-01-01. The first training row is 2024-01-31, after a 30-day warm-up for the rate features.
+- **Test period: 2026-09-13 00:00 UTC → end of data (2026-10-11 09:00).** Untouched until the user says go.
+- Validation: 4 weekly walk-forward folds before the test period (Aug 16, Aug 23, Aug 30, Sep 6). Training rows are purged so their target windows end before the fold starts.
+- The training-window length (all since 2024 / 12 / 6 / 3 months) is compared on the folds (D7).
+
+## D32. Yellow/red split — Proposed
+- There are only about 5 weeks of data with levels, so the red model gets its own split:
+  - train from 2026-09-06;
+  - validate on the weeks of Sep 13–19 and Sep 20–26;
+  - test on Sep 27 → end.
+- This overlaps the main test window, but it's a different model, and the main models never see these weeks during validation.
+- The alternative (validate only inside Sep 6–12) leaves a single week of training. That's too thin.
+
+## D33. 24h timing target — Proposed
+"When are alerts most likely?" = four probabilities: a new alert starts in hours +0–6, +6–12, +12–18 or +18–24 after the issue time. On the website these can be shown in local clock time.
+
+## D34. Small technical choices — Proposed
+- "Same hour, last N days" rates use the UTC hour (the DST shift is ignored; it's a 1-hour offset twice a year).
+- LightGBM settings are fixed and not tuned yet: 400 trees, learning rate 0.05, 63 leaves, min 500 rows per leaf.
+- Logistic regression gets log-transformed counts and sine/cosine of hour and weekday.
