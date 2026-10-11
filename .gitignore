@@ -5,3 +5,4 @@ __pycache__/
 .ipynb_checkpoints/
 data/raw/
 .env
+data/processed/*.parquet
