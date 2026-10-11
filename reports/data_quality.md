@@ -1,6 +1,6 @@
 # Data quality report
 
-Built 2026-10-11 22:55 UTC from Vadimkin `bf0c323c`, JustJimer `7abc556b`, @air_alert_ua posts #21214–#338380 (256,786 posts), @war_monitor 46,492 posts.
+Built 2026-10-11 23:17 UTC from Vadimkin `bf0c323c`, JustJimer `7abc556b`, @air_alert_ua posts #1–#338380 (338,360 posts), @war_monitor 46,492 posts.
 
 ## 1. Official rows by message type (D25)
 
@@ -9,15 +9,15 @@ Each row of the official dataset was traced back to the @air_alert_ua message th
 ```
 loc_level         hromada  oblast   raion     All
 kind                                             
-air_raid             8712   95457  105169  209338
-artillery           16503       0       0   16503
+air_raid            14118  130235  132212  276565
+artillery           22273       0       0   22273
 ballistic_threat       50       0       0      50
 drone_threat          232       0       0     232
 kab_threat             64       0       0      64
 missile_threat         30       0       0      30
-radiation              12       0      15      27
-unknown             11181   34778   27067   73026
-urban_fights            5       0       0       5
+radiation              12       0      23      35
+unknown                 1       0      16      17
+urban_fights            9       0       0       9
 All                 36789  130235  132251  299275
 ```
 
@@ -25,24 +25,23 @@ How the rows were matched:
 
 ```
 label_how
-time+location             196252
-no message found           51882
-time only                  29997
-outside scraped period     21144
+time+location       264546
+time only            34712
+no message found        17
 ```
 
 ## 2. Raion alert table
 
 - Raions: 119 in 24 oblasts (incl. Kyiv City; Luhansk and Crimea excluded).
-- Raw raion events (after disaggregation): 871,343; events whose raion is unknown (dropped): 0.
-- Merged raion alerts: 471,007, from 2022-02-25 to 2026-10-11 09:53 UTC.
-- Merged oblast alerts: 91,643.
+- Raw raion events (after disaggregation): 876,741; events whose raion is unknown (dropped): 0.
+- Merged raion alerts: 468,092, from 2022-02-25 to 2026-10-11 09:53 UTC.
+- Merged oblast alerts: 88,538.
 
 Sources of merged raion alerts:
 
 ```
 sources
-official            449963
+official            447048
 archive              15719
 volunteer             5119
 archive+official       206
@@ -53,11 +52,11 @@ Per year:
 ```
       alerts  median_min
 year                    
-2022   78700        37.1
+2022   79086        37.2
 2023   90840        39.0
-2024  117215        41.7
-2025   96926        56.0
-2026   87326        48.4
+2024  116032        41.5
+2025   94836        56.2
+2026   87298        48.4
 ```
 
 ## 3. Yellow/red (reform period, archive)
