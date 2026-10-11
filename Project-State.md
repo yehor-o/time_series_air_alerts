@@ -3,18 +3,25 @@
 _Last updated: 2026-10-11 (Sun)_
 
 ## Status
-**Planning phase (user: don't execute yet).** Open: spatial unit (D16; the user likes the raion disaggregation option), targets (D17 + duration + timing), gap filler (D19 found). @war_monitor fully scraped. No modelling code yet.
+**Planning phase, explorations done (2026-10-11 evening).**
+- D19 (archive as gap filler) accepted.
+- Targets agreed: 1h/3h = new alert + its duration; 24h = count, hours under alert, and timing. Night-alert probability is used as a feature.
+- Spatial comparison (D16 results): the raion model with disaggregation wins at raion level; the oblast model wins at oblast level.
+- Artillery check done (D20). Hole check done (D19 follow-up). Yellow/red numbers ready (D21).
+- @air_alert_ua full scrape running: 4 parallel id ranges in `data/raw/telegram/air_alert_ua/`, ~7–8 h total, resumable. @war_monitor fully scraped. No modelling code yet.
 
 ## What exists
 - `CLAUDE.md`: rules, including the no-leakage protocol and the working agreement (ask before acting, explain everything)
-- `decisions.md`: decisions D1–D15
+- `decisions.md`: decisions D1–D21
 - `tasks.md`: phased task list with priorities for the deadline
 - `Project-State.md`: this file
 - `requirements.txt` + `.venv/` (local only): Python 3.13 with pandas, numpy, scikit-learn, LightGBM, requests, bs4, lxml, matplotlib, pyarrow, pytest
 - `scripts/scrape_telegram.py`: scraper for public Telegram channels → `data/raw/telegram/<channel>.jsonl` (gitignored)
 
 ## Facts established so far
-Source: a scratch clone of the dataset repo, inspected 2026-10-11. Dataset repo HEAD at that time: commit dated 2026-10-11 04:50 UTC.
+Pinned versions used in the explorations:
+- Vadimkin `bf0c323c` (2026-10-11 04:50 UTC)
+- JustJimer archive `7abc556b` (2026-10-11 10:07 UTC)
 
 **Volunteer dataset** (`datasets/volunteer_data_en.csv`)
 - 115,989 alerts, 2022-02-25 → 2026-10-11, oblast level, 25 regions (incl. Kyiv City and Luhanska).
