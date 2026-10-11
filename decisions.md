@@ -14,9 +14,15 @@ It contains two datasets:
 **Alternatives:** alerts.in.ua API (needs a token), ukrainealarm.com API (needs a key), scraping the official Telegram channel ourselves (costs too much time).
 **Consequences:** No live API is needed for the deadline version. The data contains **no alert type** (drone vs missile, i.e. yellow vs red); see D5.
 
-## D2. Primary dataset = volunteer; official = secondary — Proposed
-**Reason:** The volunteer data is up to date (needed for "evaluate on the latest period"). It also uses one consistent spatial level (oblast) for the whole war, which avoids the oblast→raion change in the official data.
-**Use of official data:** cross-check the volunteer data on the overlapping period. Possibly a raion-level extension later.
+## D2. Base dataset = official; volunteer only fills gaps — Accepted (2026-10-11, user decision)
+**Decision:** The **official** dataset is the base: oblast, raion and hromada levels. The **volunteer** dataset is used only where the official one has gaps:
+- before 2022-03-15;
+- outages;
+- the period after the official file stops (2026-09-07 at last check).
+
+The alerts.in.ua API will fill gaps once a key arrives.
+**Finding (2026-10-11):** The official dataset is built from the public Telegram channel **@air_alert_ua** (official "Повітряна тривога" (Air Alert) channel), parsed by hashtags: 🔴 = alert, 🟢 = all clear. So we could fill the gap ourselves by scraping `t.me/s/air_alert_ua` and parsing it the same way. This keeps raion detail and the same definitions as the base. **Needs the user's approval:** a new channel.
+**Risk:** the last 4 weeks (our test period) fall entirely inside the gap. The source we use to fill the gap therefore defines the test labels. It must match the official definition, so we check this on the overlap period.
 
 ## D3. Spatial unit = oblast (25 units incl. Kyiv City) — Proposed
 **Context:** Alerts moved from oblast level to raion/hromada level (mostly from Dec 2025). Old and new alerts are hard to compare directly.
