@@ -3,12 +3,10 @@
 _Last updated: 2026-10-11 (Sun)_
 
 ## Status
-**Planning phase, explorations done (2026-10-11 evening).**
-- D19 (archive as gap filler) accepted.
-- Targets agreed: 1h/3h = new alert + its duration; 24h = count, hours under alert, and timing. Night-alert probability is used as a feature.
-- Spatial comparison (D16 results): the raion model with disaggregation wins at raion level; the oblast model wins at oblast level.
-- Artillery check done (D20). Hole check done (D19 follow-up). Yellow/red numbers ready (D21).
-- @air_alert_ua full scrape running: 4 parallel id ranges in `data/raw/telegram/air_alert_ua/`, ~7–8 h total, resumable. @war_monitor fully scraped. No modelling code yet.
+**Planning complete; the data pipeline is approved and starts next session/turn.**
+- Accepted: D19 (archive as gap filler), D22 (raion + oblast models), D23 (targets), D24 (yellow/red approach), D25 (artillery: label by message type, keep air raids only), D26 (verify volunteer patches).
+- Running: the @air_alert_ua full scrape (4 parallel id ranges in `data/raw/telegram/air_alert_ua/`, about 50% done at 2026-10-11 evening, resumable).
+- Waiting on the scrape: labelling official rows (D25) and the Lviv/Volyn investigation (D26).
 
 ## What exists
 - `CLAUDE.md`: rules, including the no-leakage protocol and the working agreement (ask before acting, explain everything)
@@ -16,7 +14,8 @@ _Last updated: 2026-10-11 (Sun)_
 - `tasks.md`: phased task list with priorities for the deadline
 - `Project-State.md`: this file
 - `requirements.txt` + `.venv/` (local only): Python 3.13 with pandas, numpy, scikit-learn, LightGBM, requests, bs4, lxml, matplotlib, pyarrow, pytest
-- `scripts/scrape_telegram.py`: scraper for public Telegram channels → `data/raw/telegram/<channel>.jsonl` (gitignored)
+- `scripts/scrape_telegram.py`: scraper for public Telegram channels → `data/raw/telegram/` (gitignored); supports parallel id ranges
+- `scripts/explore_spatial_options.py` + `reports/spatial_options.md`: oblast vs raion comparison (D16 results)
 
 ## Facts established so far
 Pinned versions used in the explorations:
@@ -64,7 +63,7 @@ Pinned versions used in the explorations:
 
 ## Open questions for the user
 1. Who creates the Netlify site (your account)? When?
-2. alerts.in.ua: the API key isn't here yet. Once it arrives, approve the site and give the key as an environment variable, never in the repo.
+2. alerts.in.ua API key: still pending. It's no longer blocking, thanks to the JustJimer archive.
 
 ## Answered
 - D4 accepted. The other Proposed decisions get settled during implementation.
@@ -73,5 +72,5 @@ Pinned versions used in the explorations:
 - Python libraries: installation approved.
 - Telegram: option A (public web preview) approved, with t.me allowed.
 
-## Latest results
-None yet.
+## Latest results (exploration, not final)
+Spatial comparison on 2026-08-10 → 09-06 (D16 results): raion model 1h AUC 0.839 / 3h AUC 0.849 at raion level; oblast model 1h AUC 0.855 / 3h AUC 0.864 at oblast level.

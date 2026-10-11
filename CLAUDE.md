@@ -4,7 +4,7 @@ Read this file first in every session. Then read `Project-State.md`, `tasks.md` 
 
 ## Project in one paragraph
 
-We forecast **the probability of an air raid alert in each Ukrainian oblast** for the next **1, 3 and 24 hours**. We train on the historical alert data and evaluate on the **most recent period**. We compare several models against simple baselines. Then we test whether adding Telegram data (e.g. `@war_monitor`) improves the forecasts. Results are shown on a static English website with a map of Ukraine, hosted on Netlify.
+We forecast **air raid alerts in each Ukrainian district (raion) and oblast**. For the next 1h and 3h: the chance a new alert starts and how long it will last. For the next 24h: how many alerts, how many hours under alert, and when. For alerts since the 2026-09-06 reform: the chance an alert is red (missile) vs yellow (drone). We train on the historical alert data and evaluate on the **most recent period**. We compare several models against simple baselines. Then we test whether adding Telegram data (e.g. `@war_monitor`) improves the forecasts. Results are shown on a static English website with a map of Ukraine, hosted on Netlify.
 
 **Deadline: Monday 2026-10-12, 23:59 (Kyiv time).** Scope decisions must respect this.
 
@@ -23,8 +23,8 @@ The user owns this project and must understand and approve what happens.
 3. **Explain, don't just do.** The user is learning. When you introduce a concept (a model, a metric, a feature, leakage, calibration, etc.), explain it in plain English: what it is, why we use it, and what the numbers mean. Avoid unexplained jargon. Give analogies when helpful.
 4. Never present a result you did not actually compute. If something failed or was skipped, say so.
 5. **Approved websites only.** The environment has full network access, but Claude may only visit sites the user approved:
-   - `github.com` / `raw.githubusercontent.com`: the Vadimkin dataset and this repo
-   - `t.me`: the public web preview of `@war_monitor`
+   - `github.com` / `raw.githubusercontent.com`: the Vadimkin dataset, the JustJimer archive (`JustJimer/ukraine-air-alert-stats`) and this repo
+   - `t.me`: the public web previews of `@war_monitor` and `@air_alert_ua`
    - `pypi.org`: package installs (approved for Python libraries)
 
    Anything else (e.g. `alerts.in.ua`, news sites, other Telegram channels) needs approval first. Add each newly approved site to this list.
@@ -52,7 +52,7 @@ A forecast is made at time **t** (the "issue time"). Everything the model uses m
 
 - Language: Python 3.13 in a virtualenv: `python3 -m venv .venv && . .venv/bin/activate && pip install -r requirements.txt`. Main libs: pandas, numpy, scikit-learn, LightGBM, plus requests, beautifulsoup4 and lxml for scraping, matplotlib, pyarrow and pytest. Add new libraries only with approval.
 - All timestamps are stored in **UTC**. Calendar features (hour of day, weekday) are computed in **Europe/Kyiv** local time.
-- Spatial unit: **oblast** (see `decisions.md`).
+- Spatial units: **raion** (district map) and **oblast** (oblast view), two separate models (D22).
 - Code goes in `src/`, scripts and pipeline steps in `scripts/`, exploration in `notebooks/`, website in `site/`, results (metrics, figures, prediction JSON) in `reports/`.
 - Raw downloaded data goes in `data/raw/` and is not committed (see `decisions.md`). Processed data goes in `data/processed/`.
 - Keep every experiment reproducible: fixed random seeds, pinned dataset commit, and the exact config saved next to its metrics.

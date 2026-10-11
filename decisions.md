@@ -24,7 +24,7 @@ The alerts.in.ua API will fill gaps once a key arrives.
 **Finding (2026-10-11):** The official dataset is built from the public Telegram channel **@air_alert_ua** (official "Повітряна тривога" (Air Alert) channel), parsed by hashtags: 🔴 = alert, 🟢 = all clear. So we could fill the gap ourselves by scraping `t.me/s/air_alert_ua` and parsing it the same way. This keeps raion detail and the same definitions as the base. **Needs the user's approval:** a new channel.
 **Risk:** the last 4 weeks (our test period) fall entirely inside the gap. The source we use to fill the gap therefore defines the test labels. It must match the official definition, so we check this on the overlap period.
 
-## D3. Spatial unit = oblast (25 units incl. Kyiv City) — Proposed
+## D3. Spatial unit = oblast (25 units incl. Kyiv City) — Superseded by D22
 **Context:** Alerts moved from oblast level to raion/hromada level (mostly from Dec 2025). Old and new alerts are hard to compare directly.
 **Decision:** Forecast at oblast level. In the official data, "any raion/hromada alert in the oblast" counts as an oblast alert.
 **Exclusions:** **Luhanska oblast** has had a permanent siren since 2022-04-04, so there is nothing to forecast there. Exclude it. Crimea has a permanent siren too, but it is not in the data.
@@ -37,7 +37,7 @@ The alerts.in.ua API will fill gaps once a key arrives.
 - **Secondary (if time allows):** "alert active at any moment in (t, t+h]". It's closer to what a person on the street cares about.
 - **Output:** a probability between 0 and 1, not just yes/no.
 
-## D5. Alert type (yellow = drones, red = missiles) — Accepted as out of scope for v1
+## D5. Alert type (yellow = drones, red = missiles) — Superseded by D24
 **Context:** Alert levels by threat type were introduced recently. Neither dataset has a type column.
 **Decision:** v1 forecasts "any alert". Threat type could later be inferred from Telegram text (e.g. @war_monitor messages that mention "shahed" or "missile"). That would be a stretch goal.
 
@@ -98,7 +98,7 @@ One model per horizon (1h, 3h, 24h), shared across oblasts, with the oblast as a
 ## D12. Raw data storage — Proposed
 Do not commit the raw CSVs (the whole cloned dataset repo is about 130 MB). A script `scripts/download_data.py` downloads them into `data/raw/`, which is gitignored. The script records the dataset commit hash so that every result can be reproduced.
 
-## D13. District (raion) level forecasts — Proposed (brainstorm later)
+## D13. District (raion) level forecasts — Superseded by D22
 **Context:** The user wants raion-level forecasts if possible. Raion alerts are the main mode since about Dec 2025.
 **Data available:**
 - **Official Vadimkin data:** raion and hromada rows through 2026-09-07. It stopped updating, which needs verifying.
@@ -123,7 +123,7 @@ Do not commit the raw CSVs (the whole cloned dataset repo is about 130 MB). A sc
 ## D15. Telegram raw data storage — Proposed
 Telegram history can change (edits, deletions), so a re-scrape is not perfectly reproducible. The raw JSONL lives in `data/raw/` (gitignored). A **processed, de-duplicated snapshot** with the scrape date will be committed (or published as a release asset if it is too big), so results can be reproduced.
 
-## D16. Spatial unit: oblast vs raion — OPEN (options to evaluate)
+## D16. Spatial unit: oblast vs raion — Resolved by D22
 **Facts (official data, 2026-01-01 → 2026-09-06, Luhanska excluded):**
 - Raion-level records rose from 7% (2025Q1) to 54% (2025Q3) to 92–94% (2026). Before mid-2025, almost all alerts were oblast-wide.
 - On average an oblast has "any alert" 29.5% of the time, but the **whole** oblast is under alert only 12.1% of the time. When there is an alert, on average 72% of the oblast's raions are covered.
@@ -136,7 +136,7 @@ Telegram history can change (edits, deletions), so a re-scrape is not perfectly 
 - O3: **raion-level target built for the whole war by disaggregation.** An oblast-wide alert before 2025 = an alert in every raion of that oblast. This keeps one target definition over time, and history at oblast level feeds in as input features. The problem: raion labels after 2026-09-07 exist only via the alerts.in.ua API (no key yet).
 - O4: a hierarchical model: P(oblast) × P(raion | oblast).
 
-## D17. 24h horizon reframing — Proposed (user idea)
+## D17. 24h horizon reframing — Superseded by D23
 **Fact:** Sep 1 → Oct 10, 2026 (volunteer data), **19 of 23 oblasts had at least one alert on ≥ 90% of days**. So "will there be an alert in the next 24h?" is almost always yes, and a model gets a high score just by saying yes.
 **Proposal:** keep 1h and 3h as probabilities of a new alert. For 24h, predict:
 - (a) the **number of alerts**;
@@ -178,7 +178,7 @@ Threat type is not reported systematically, which confirms the user's note. A fu
   - Plan: fill such holes from the volunteer data (oblast-level alert → all raions of the oblast), with a `source=volunteer` flag.
 - The "6 empty 6-hour bins" mentioned earlier were before 2026-09-06 12:00, when the archive wasn't yet complete. Not a problem.
 
-## D20. Artillery warnings inside the official dataset — finding (2026-10-11)
+## D20. Artillery warnings inside the official dataset — finding (2026-10-11); handling decided in D25
 **Method:** the Vadimkin parser sets `started_at` = the Telegram message time. Each official row is matched to the @air_alert_ua message that created it, by exact timestamp. Coverage: rows inside the windows scraped so far (5,165 rows); 93% matched.
 **Findings:**
 - **512 of 5,165 rows (≈10%) are artillery warnings ("🔴 Загроза артобстрілу!"), not air raids.** The parser treats every 🔴 message as an alert.
@@ -212,3 +212,30 @@ Script: `scripts/explore_spatial_options.py`. Full tables: `reports/spatial_opti
 - Median duration: yellow 42 min, red 56 min.
 - 188 of 16,470 alerts switch level with no gap in between (escalation or de-escalation).
 - The daily share of red ranges from 0.20 to 1.00 (std 0.15). Some days are all-red (massive missile attacks?).
+
+---
+# Decisions accepted on 2026-10-11 (evening)
+
+## D22. Two models: raion (district) map + oblast view — Accepted
+- **Raion model** (option O3): target = a new alert starts in the raion. History before the raion era is built by **disaggregation**: an oblast-wide alert = an alert in every raion of that oblast. Powers the district map.
+- **Oblast model** (option O1): target = a new "any alert in the oblast" period starts. Powers the oblast view.
+- Both models use **the same kinds of inputs** (recent alerts of the unit, its oblast, the whole country, time of day, …), each computed for its own unit. They differ in **what they predict**.
+- Oblast probabilities are **not** computed from raion probabilities: raions are strongly correlated, so 1 − ∏(1 − p) over-predicts (D16 results).
+
+## D23. Targets — Accepted
+- **1h and 3h:** P(new alert starts within (t, t+h]) **and the expected duration** of that alert.
+- **24h:** number of alerts, total hours under alert, and **when** they are most likely (a probability per hour or time-of-day block).
+- The probability of a night alert is an **input feature**, not a separate output.
+
+## D24. Yellow/red — Accepted (adapt as we go)
+- Predict "**if an alert happens, how likely is it to be red?**", from recent levels (raion, oblast), time of day, and later @war_monitor missile/bomber signals.
+- Train and evaluate only on the reform period (from 2026-09-06). Communicate that the data is thin (about 5 weeks).
+- The map shows "chance of an alert" and "chance it's red" side by side.
+
+## D25. Artillery warnings — Accepted
+- **Do not** drop hromada-level rows wholesale.
+- Wait for the full @air_alert_ua scrape. Label every official row by the message that created it (exact timestamp match), and **keep only air raids**. Drop artillery threats, urban fights and other non-air-raid messages.
+
+## D26. Filling holes with volunteer data — Accepted, with verification
+- Before using a volunteer alert to fill a hole in the archive (e.g. 2026-10-07 ~00:12–04:02 UTC), **verify it** against @air_alert_ua (before 2026-09-07) and @war_monitor posts (threat activity in that oblast around that time).
+- Investigate why Lviv and Volyn have many volunteer alerts the archive lacks, and report the findings to the user.
