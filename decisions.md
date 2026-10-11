@@ -122,3 +122,33 @@ Do not commit the raw CSVs (the whole cloned dataset repo is about 130 MB). A sc
 
 ## D15. Telegram raw data storage — Proposed
 Telegram history can change (edits, deletions), so a re-scrape is not perfectly reproducible. The raw JSONL lives in `data/raw/` (gitignored). A **processed, de-duplicated snapshot** with the scrape date will be committed (or published as a release asset if it is too big), so results can be reproduced.
+
+## D16. Spatial unit: oblast vs raion — OPEN (options to evaluate)
+**Facts (official data, 2026-01-01 → 2026-09-06, Luhanska excluded):**
+- Raion-level records rose from 7% (2025Q1) to 54% (2025Q3) to 92–94% (2026). Before mid-2025, almost all alerts were oblast-wide.
+- On average an oblast has "any alert" 29.5% of the time, but the **whole** oblast is under alert only 12.1% of the time. When there is an alert, on average 72% of the oblast's raions are covered.
+- Example: Kharkivska has "any alert" 86.6% of the time, the whole oblast 15.7%.
+- Dnipropetrovska has "any alert" 99.9% of the time. This is likely driven by frontline hromada alerts (e.g. Nikopol), and possibly artillery-threat messages ("🔴 Загроза артобстрілу"). The Vadimkin parser treats every 🔴 message as an alert, so this needs checking.
+
+**Options:**
+- O1: oblast = any alert in any raion or hromada (union).
+- O2: oblast-level share of raions under alert (a fraction target), or "majority of the oblast".
+- O3: **raion-level target built for the whole war by disaggregation.** An oblast-wide alert before 2025 = an alert in every raion of that oblast. This keeps one target definition over time, and history at oblast level feeds in as input features. The problem: raion labels after 2026-09-07 exist only via the alerts.in.ua API (no key yet).
+- O4: a hierarchical model: P(oblast) × P(raion | oblast).
+
+## D17. 24h horizon reframing — Proposed (user idea)
+**Fact:** Sep 1 → Oct 10, 2026 (volunteer data), **19 of 23 oblasts had at least one alert on ≥ 90% of days**. So "will there be an alert in the next 24h?" is almost always yes, and a model gets a high score just by saying yes.
+**Proposal:** keep 1h and 3h as probabilities of a new alert. For 24h, predict:
+- (a) the **number of alerts**;
+- (b) the **total alert hours** in the next 24h;
+- (c) P(any alert), kept only where it's informative.
+
+Possible extra: P(a "night attack" alert between 22:00 and 06:00).
+
+## D18. @air_alert_ua — finding (2026-10-11)
+The channel's **last post is #338380 at 2026-09-07 06:09 UTC**, the same point where the official dataset stops. The channel stopped publishing, so it **cannot fill the gap** after 2026-09-07. Its history duplicates the official dataset, except for message types the parser may mishandle:
+- 🟠 "Загроза ударних БпЛА" (strike-drone threat), sometimes "невизначеного типу" (unknown drone type);
+- artillery threats ("Загроза артобстрілу");
+- "УВАГА" (attention) notices.
+
+Threat type is not reported systematically, which confirms the user's note. A full scrape (~17k pages, ~5h) is not done; it waits for a decision.

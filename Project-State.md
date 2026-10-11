@@ -3,7 +3,7 @@
 _Last updated: 2026-10-11 (Sun)_
 
 ## Status
-**Phase 0 → Phase 5 data collection started early.** Telegram scraping works and is running in the background (target: posts back to 2024-01-01). No modelling code yet.
+**Discussion phase before building the pipeline.** Open: oblast vs raion (D16), 24h target (D17), and how to fill the gap after 2026-09-07 (D18). @war_monitor fully scraped. No modelling code yet.
 
 ## What exists
 - `CLAUDE.md`: rules, including the no-leakage protocol and the working agreement (ask before acting, explain everything)
@@ -49,6 +49,9 @@ Source: a scratch clone of the dataset repo, inspected 2026-10-11. Dataset repo 
   - The channel is somewhat Kyiv-centric.
   - It has "technical works" gaps (e.g. 2026-10-10/11).
   - Posts can be edited (we record an `edited` flag).
+- **Full scrape done:** 46,492 posts, #1 (2022-04-25) → #47555 (2026-10-11). 5.6% are edited; about 1k post numbers are missing (deleted). The channel didn't exist before 2022-04-25.
+
+**@air_alert_ua** (the source of the official dataset) stopped posting on 2026-09-07 (see D18).
 
 ## Open questions for the user
 1. Who creates the Netlify site (your account)? When?
