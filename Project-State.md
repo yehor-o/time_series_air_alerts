@@ -3,7 +3,7 @@
 _Last updated: 2026-10-11 (Sun)_
 
 ## Status
-**Discussion phase before building the pipeline.** Open: oblast vs raion (D16), 24h target (D17), and how to fill the gap after 2026-09-07 (D18). @war_monitor fully scraped. No modelling code yet.
+**Planning phase (user: don't execute yet).** Open: spatial unit (D16; the user likes the raion disaggregation option), targets (D17 + duration + timing), gap filler (D19 found). @war_monitor fully scraped. No modelling code yet.
 
 ## What exists
 - `CLAUDE.md`: rules, including the no-leakage protocol and the working agreement (ask before acting, explain everything)
@@ -51,7 +51,9 @@ Source: a scratch clone of the dataset repo, inspected 2026-10-11. Dataset repo 
   - Posts can be edited (we record an `edited` flag).
 - **Full scrape done:** 46,492 posts, #1 (2022-04-25) → #47555 (2026-10-11). 5.6% are edited; about 1k post numbers are missing (deleted). The channel didn't exist before 2022-04-25.
 
-**@air_alert_ua** (the source of the official dataset) stopped posting on 2026-09-07 (see D18).
+**@air_alert_ua** (the source of the official dataset) stopped posting on 2026-09-07 (see D18). The cause: the yellow/red reform changed the message format on 2026-09-06.
+
+**JustJimer archive** (alerts.in.ua): raion-level data with yellow/red and air_raid vs artillery, complete from 2026-09-06 12:00 UTC to today. It matches the official data 97% on the overlap. **This fills the gap** (D19).
 
 ## Open questions for the user
 1. Who creates the Netlify site (your account)? When?

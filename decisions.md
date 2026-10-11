@@ -152,3 +152,19 @@ The channel's **last post is #338380 at 2026-09-07 06:09 UTC**, the same point w
 - "УВАГА" (attention) notices.
 
 Threat type is not reported systematically, which confirms the user's note. A full scrape (~17k pages, ~5h) is not done; it waits for a decision.
+
+## D19. Gap filler: JustJimer/ukraine-air-alert-stats archive (alerts.in.ua) — Proposed
+**Source:** https://github.com/JustJimer/ukraine-air-alert-stats, file `archive/alerts_in_ua.csv`. A GitHub Action pulls the alerts.in.ua API ("last month" for every region) daily and upserts records by API id. We can read it **without our own API key**.
+**Facts (checked 2026-10-11, archive HEAD 2026-10-11 10:07 UTC):**
+- 19,016 records. **Complete from about 2026-09-06 12:00 UTC → today.** Earlier rows are only a few long-running alerts (permanent Luhansk/Crimea sirens, etc.).
+- Levels: raion 16,252, hromada 1,265, city 1,256 (7 big cities, e.g. Kharkiv, Dnipro, Zaporizhzhia), oblast-type 243 (incl. Kyiv City). That's 118 raions across 23 oblasts.
+- **`alert_level` yellow/red is present.** It starts on 2026-09-06, matching the reform (CMU resolution 1092, per the repo README). Counts: yellow 11,284, red 7,732. `threats` is empty.
+- **`alert_type` separates `air_raid` (18,686) from `artillery_shelling` (329) and `urban_fights` (1).**
+- **Agreement with the official data on the overlap** (2026-09-06 12:00 → 09-07 06:10): 97% of official raion alerts match an API alert (same raion, start within 3 min); the median end-time difference is 0.5 min. So the definitions are compatible.
+
+**Why the official feed stopped (per the repo README):** on 2026-09-06 the yellow/red split changed @air_alert_ua's message format, and the Vadimkin parser broke (upstream issues #6, #7).
+**Proposal:** official (≤ 2026-09-06 12:00) + archive (from then on) = one raion-level series up to today. Volunteer only fills residual holes.
+**Caveats:**
+- The archive is a third-party repo with no LICENSE file. Credit it, and pin the commit we use.
+- Records get upserted (end times filled in later). That's fine for historical labels. For features we still use only what was known at t.
+- 6 of 150 six-hour bins have zero alerts nationwide; check whether these are real calm periods or sync holes.
