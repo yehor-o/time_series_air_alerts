@@ -270,3 +270,33 @@ bin
 (0.8, 0.9]      1517      0.850     0.852
 (0.9, 1.0]       695      0.930     0.932
 ```
+
+### Duration of the next alert (starting within 3h), as a range
+
+7,028 test cases; true durations: median 46 min, middle half 25–97 min. Ideal coverage of a 25–75% range: 50%.
+
+```
+                             median abs error of the middle value (min)  pinball loss  true duration inside the 25-75% range  average range width (min)
+baseline: last 10 alerts                                         27.796        41.599                                  0.417                     89.042
+LightGBM quantiles (chosen)                                      29.699        40.098                                  0.487                    108.626
+```
+
+### Next 24 hours
+
+Number of new alerts (true average 5.03):
+
+```
+                                          MAE  median abs error   RMSE  skill vs 7-day average
+baseline: same as last 24h              2.083             1.000  3.033                  -0.078
+baseline: daily average of last 7 days  1.931             1.429  2.722                   0.000
+LightGBM (chosen)                       2.086             1.360  2.980                  -0.080
+```
+
+Hours under alert (true average 10.25 h):
+
+```
+                                          MAE  median abs error   RMSE  skill vs 7-day average
+baseline: same as last 24h              2.198             1.085  3.555                   0.015
+baseline: daily average of last 7 days  2.231             1.442  3.300                   0.000
+LightGBM (chosen)                       2.058             1.018  3.252                   0.077
+```
