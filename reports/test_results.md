@@ -219,3 +219,54 @@ bin
 (0.8, 0.9]        88      0.846     0.898
 (0.9, 1.0]         5      0.914     0.800
 ```
+
+### New alert within 3h
+
+Base rate: 0.429 (16,296 unit-hours).
+
+```
+                                    Brier  log-loss  ROC-AUC  PR-AUC  skill vs same-hour
+baseline: same hour, last 14 days  0.2579    0.9476   0.7843  0.6751              0.0000
+baseline: persistence              0.2405    0.6745   0.7135  0.5935              0.0677
+logistic regression                0.1548    0.4669   0.8524  0.7872              0.4000
+LightGBM (chosen)                  0.1543    0.4656   0.8542  0.7977              0.4019
+LightGBM + @war_monitor            0.1532    0.4611   0.8560  0.8038              0.4062
+LightGBM + @kpszsu                 0.1555    0.4684   0.8516  0.7951              0.3971
+```
+
+Chosen model by time of day:
+
+```
+                    Brier  log-loss  ROC-AUC  PR-AUC  skill vs same-hour
+day (06-22 Kyiv)    0.151     0.458    0.862   0.817               0.417
+night (22-06 Kyiv)  0.162     0.481    0.838   0.754               0.371
+```
+
+Chosen model by test week:
+
+```
+        Brier  ROC-AUC  skill vs same-hour
+week 1  0.166    0.828               0.387
+week 2  0.138    0.887               0.444
+week 3  0.148    0.863               0.356
+week 4  0.164    0.843               0.409
+week 5  0.158    0.872               0.539
+```
+
+Calibration (chosen model):
+
+```
+                rows  predicted  observed
+bin                                      
+(-0.001, 0.05]  2352      0.015     0.017
+(0.05, 0.1]      908      0.074     0.068
+(0.1, 0.2]      1624      0.149     0.131
+(0.2, 0.3]      1568      0.249     0.258
+(0.3, 0.4]      1546      0.350     0.339
+(0.4, 0.5]      1489      0.451     0.465
+(0.5, 0.6]      1498      0.551     0.601
+(0.6, 0.7]      1622      0.650     0.686
+(0.7, 0.8]      1477      0.749     0.750
+(0.8, 0.9]      1517      0.850     0.852
+(0.9, 1.0]       695      0.930     0.932
+```
