@@ -1,6 +1,6 @@
 # Data quality report
 
-Built 2026-10-11 23:17 UTC from Vadimkin `bf0c323c`, JustJimer `7abc556b`, @air_alert_ua posts #1–#338380 (338,360 posts), @war_monitor 46,492 posts.
+Built 2026-10-12 10:22 UTC from Vadimkin `bf0c323c`, JustJimer `7abc556b`, @air_alert_ua posts #1–#338380 (338,360 posts), @war_monitor 46,492 posts.
 
 ## 1. Official rows by message type (D25)
 
@@ -68,12 +68,12 @@ year
 Archive silences of at least 2 hours nationwide, checked against volunteer alerts and @war_monitor:
 
 ```
-                       gap_start                          gap_end  hours  volunteer_unexplained  war_monitor_threat_posts  judged_hole  volunteer_patches
-2026-10-07 00:11:55.359000+00:00 2026-10-07 04:02:40.090000+00:00   3.85                      0                        48         True                  0
+                       gap_start                          gap_end  hours  volunteer_unexplained  war_monitor_threat_posts  raions_already_under_alert  judged_hole  volunteer_patches
+2026-10-07 00:11:55.359000+00:00 2026-10-07 04:02:40.090000+00:00   3.85                      0                        48                        0.61        False                  0
 ```
 
 Volunteer alerts used as oblast-level patches: 0.
-A silence counts as a hole when @war_monitor shows heavy threat activity at the same time (at least 10 threat posts): a massive attack without a single new alert is implausible. Raion truth is then unknown nationwide, so the window is written to `masks.parquet` and excluded from raion targets.
+A silence counts as a hole when @war_monitor shows heavy threat activity at the same time (at least 10 threat posts) **and** fewer than 50% of the raions are already under alert (if most of the country is already under alert, no new alert can start, so silence is normal; e.g. 2026-10-07, confirmed by the user's alerts.in.ua screenshot). Raion truth is then unknown nationwide, so the window is written to `masks.parquet` and excluded from raion targets.
 
 ## 5. Volunteer quirk in Lviv, Volyn, Kherson (D26)
 
