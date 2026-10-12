@@ -257,12 +257,12 @@ The labelling (D25) found these types besides air raids in @air_alert_ua:
 
 Only `air_raid` rows define targets. The typed threats are **kept as possible features** (they carry the threat type), mainly for Zaporizhzhia city.
 
-## D29. Archive holes — Proposed
+## D29. Archive holes — Accepted (user, 2026-10-12)
 - A hole is an archive silence of ≥ 2 h nationwide while @war_monitor posts ≥ 10 threat messages.
 - Example: 2026-10-07 00:12–04:02 UTC, during a massive Kh-101 cruise-missile attack (48 threat posts).
 - During a hole, raion truth is unknown, so targets overlapping the window are set to NaN (excluded from training and scoring). Oblast truth gets volunteer patches for alerts not already covered by an active archive alert (none were needed for Oct 7).
 
-## D30. Volunteer quirk in Lviv, Volyn, Kherson — Proposed (D26 finding)
+## D30. Volunteer quirk in Lviv, Volyn, Kherson — OPEN (user: find other sources before deciding)
 - The volunteer source records many more alerts there than the official system:
   - Lviv: about 5/day volunteer vs about 0.5/day official before the reform;
   - after the reform: 117 of 134 Lviv volunteer alerts are not in the archive.
@@ -295,3 +295,43 @@ Only `air_raid` rows define targets. The typed threats are **kept as possible fe
 - New-alert probabilities (1h, 3h; raion and oblast) and 24h timing: **LightGBM**, trained on the last 12 months.
 - 24h count and hours, and duration: LightGBM is only marginally better than persistence. Show them as **typical ranges** (e.g. "usually 30–120 min"), not precise numbers. Candidates for improvement: quantile models, features from Telegram.
 - Red given alert: the **simple rule "raion red share in the last 7 days"** or the 5-feature logistic regression. Full models overfit the ~2–3 weeks of reform data.
+
+---
+# User feedback 2026-10-12 (morning)
+
+## D36. Role of each source — Accepted (user principle)
+- **Whether** there is an alert, and its details: official data (until 2026-09-07) and alerts.in.ua (JustJimer archive).
+- **What kind** of threat it is: @war_monitor. It is not reliable for tracking alerts themselves.
+- The hole rule (D29) follows this: the archive decides; @war_monitor only flags "a big attack was going on, so silence is suspicious".
+
+## D37. 🟠 "Загроза ударних БпЛА / Загроза БпЛА невизначеного типу" = FPV-type drones — Accepted (user's interpretation)
+These posts only appear for frontline communities (Nikopol 8,495, Kharkiv 3,172, Zaporizhzhia 933). They are a separate, local threat type, not the yellow "drone" alert level.
+
+## D38. @war_monitor as a yellow/red labeller — tested, does NOT work well enough (2026-10-12)
+**Test:** for 11,162 alert groups since 2026-09-06 (oblast × start minute, true level known; 29% red), rules based on @war_monitor posts within −60…+15 min of the alert start:
+
+| Rule | Balanced accuracy | Red precision | Red recall |
+|---|---|---|---|
+| any nationwide missile post → red | 0.56 | 0.44 | 0.24 |
+| missile post naming the oblast → red | 0.51 | 0.60 | 0.03 |
+| oblast missile, or nationwide missile and no oblast drone | 0.56 | 0.46 | 0.22 |
+| score (oblast missile, nationwide missile, oblast drone) | AUC 0.57 | | |
+
+Balanced accuracy 0.5 = coin flip. Other windows (−30…+10, −120…+30) give the same picture.
+
+**Why:**
+- @war_monitor names the oblast in only 12% of alerts: Kyiv City 47%, Kyiv oblast 41%, but 0–3% for frontline oblasts where red is common (Dnipropetrovsk 86% red, Donetsk 70%, Kharkiv 56%).
+- Red there is mostly local aviation/KAB/missile activity the channel doesn't cover.
+
+**Consequence:** we don't create pseudo yellow/red labels for August and earlier from @war_monitor. Its posts remain candidate *features* (e.g. "missile activity nationwide in the last hours").
+
+## D39. Artillery warnings — OPEN (to discuss with the user)
+Facts:
+- 22,273 official rows in 18 hromadas since 2022-05.
+- Since 2026, effectively only **Nikopol** (under an artillery warning ~68% of the time), **Marhanets** (~100%; warnings overlap) and **Pokrovska** (until 2026-07) and **Chervonohryhorivka** (until 2026-03).
+- After the reform the archive has artillery warnings only for Nikopol and Marhanets (322 records).
+
+Options:
+- (a) Keep them out of the air-raid targets (current).
+- (b) Add them as a separate small target "artillery warning starts in hromada X", for the 2 active communities.
+- (c) Count them as alerts for their raion.

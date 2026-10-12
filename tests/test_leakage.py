@@ -87,3 +87,22 @@ def test_targets_do_look_ahead():
     known = build_panel(t, units, grid, last)
     day_before = lambda p: p[(p.time > cut - pd.Timedelta("24h")) & (p.time <= cut)].y_count_24h.values
     assert not np.array_equal(day_before(full), day_before(known))
+
+
+def test_war_monitor_features_no_lookahead():
+    """Deleting all @war_monitor posts published at or after T must not change any feature at t <= T."""
+    from src.alerts.telegram import load_channel
+    from src.alerts.telegram_features import war_monitor_features
+    try:
+        posts = load_channel("data/raw/telegram/war_monitor.jsonl")
+    except Exception:
+        pytest.skip("scrape @war_monitor first")
+    posts = posts[(posts.published >= "2026-08-01") & (posts.published < "2026-09-15")]
+    grid = pd.date_range("2026-08-10", "2026-09-14", freq="h", tz="UTC")
+    obs = ["м. Київ", "Харківська область"]
+    for cut in (pd.Timestamp("2026-08-20 03:00", tz="UTC"), pd.Timestamp("2026-09-07 21:00", tz="UTC")):
+        n1, r1 = war_monitor_features(posts, grid, obs)
+        n2, r2 = war_monitor_features(posts[posts.published < cut], grid, obs)
+        pd.testing.assert_frame_equal(n1[n1.index <= cut], n2[n2.index <= cut])
+        sel = lambda r: r[r.index.get_level_values("time") <= cut]
+        pd.testing.assert_frame_equal(sel(r1), sel(r2))
