@@ -261,12 +261,12 @@ function initReplay() {
       const u = R.raion[p.id], pr = u.p[k] / 100, y = u.y[k];
       l.setStyle({ fillColor: rampColor(pr), color: y ? "#ffffff" : "#0e1726", weight: y ? 1.6 : 0.5 });
       if (y) { l.bringToFront(); starts++; if (pr >= 0.5) hits++; }
-      brier += (pr - y) ** 2; n++;
+      if (y != null) { brier += (pr - y) ** 2; n++; }  // null = outcome unknown (data hole / end of data)
     });
     $("#rtime").textContent = `${fDayTime.format(new Date(t0 + k * 3600e3))} (Kyiv time)`;
     $("#rstats").innerHTML = `<div class="tile"><div class="v">${starts}</div><div class="k">districts where an alert actually started in the next 3 h</div></div>
       <div class="tile"><div class="v">${starts ? Math.round((100 * hits) / starts) : 0}%</div><div class="k">of those had a forecast of 50% or more</div></div>
-      <div class="tile"><div class="v">${(brier / n).toFixed(3)}</div><div class="k">Brier score this hour (0 = perfect)</div></div>`;
+      <div class="tile"><div class="v">${n ? (brier / n).toFixed(3) : "–"}</div><div class="k">Brier score this hour (0 = perfect)</div></div>`;
   };
   sl.oninput = () => draw(+sl.value);
   let timer = null;

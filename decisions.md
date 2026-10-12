@@ -416,3 +416,12 @@ Done: `data/telegram/*.jsonl.gz` (all scraped channels, 8.3 MB; @kpszsu and @Ukr
 - Gains are small (about +0.005–0.007 skill) but consistent.
 - Scope: only the 1h/3h new-alert classifiers. Duration, 24h count/hours, timing and red/yellow keep the D34 settings.
 - Alternative: one setting for both levels (candidate 4 also passed for oblast, −0.5%); the rule picks the lowest Brier, so candidate 6 for oblast.
+
+## D48. No changes after the test — Accepted (user, 2026-10-12)
+The final test (`reports/test_results.md`) showed two weak spots: the 24h alert count lost to the 7-day average (4–8% larger error), and the oblast week-ahead blend was worse than the pattern rule for days 1–2. **We keep the frozen models anyway** (user: changing something after seeing the test results is bad practice; the test would no longer be an independent check). Both weak spots are reported openly on the quality page.
+
+## D49. 24h count and hours shown as ranges from percentile models — Accepted (user, 2026-10-12)
+25th–75th percentile LightGBM models (same method as duration, D41). Their coverage (how often the true value falls inside the range) is measured on the last validation week (6–12 Sep), not on the test weeks.
+
+## D50. Forecast moment and data refresh — Accepted (user, 2026-10-12)
+The site is first built on the pinned data: forecast moment 2026-10-11 09:00 UTC (12:00 Kyiv). If time allows before the deadline, a refresh with newer data (new pins recorded) updates only the live forecast; the reported test scores stay on the pinned data, with the test start fixed at 2026-09-13.
