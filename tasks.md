@@ -16,7 +16,7 @@ Deadline: **Mon 2026-10-12, 23:59 Kyiv**. Done items from earlier phases are sum
 ## Next (in order)
 1. [x] Finish the Telegram downloads (@kpszsu, @UkraineAlarmSignal)
 2. [x] D45 decided: blend model/pattern (user, after `reports/timing_variants.md`); implemented in `src/alerts/timing.py`
-2b. [ ] Refresh the committed Telegram snapshots (`data/telegram/*.jsonl.gz`) — waits for the user's OK
+2b. [x] Committed Telegram snapshots refreshed with the complete @kpszsu and @UkraineAlarmSignal downloads
 3. [ ] **LightGBM tuning**, time-boxed (~40 min, validation folds only), raion + oblast 3h
 4. [x] @kpszsu features: NOT used, worse on probability targets (D44, `reports/kpszsu_ablation.md`)
 

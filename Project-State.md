@@ -18,7 +18,7 @@ _Last updated: 2026-10-12, ~17:30 Kyiv (session 2)._ Deadline: **today 23:59 Kyi
 
 ## Session 2 (2026-10-12)
 - Data rebuilt at the pinned commits (both upstream repos have newer commits; the user chose to keep the pins).
-- **Telegram downloads complete:** @kpszsu 44,019 posts (2025-08-31 → 2026-10-12); @UkraineAlarmSignal since 2026-08-31 (part files in `data/raw/telegram/`). The committed `.jsonl.gz` snapshots are still the partial ones from session 1 (refresh waits for the user's OK).
+- **Telegram downloads complete:** @kpszsu 44,019 posts (2025-08-31 → 2026-10-12); @UkraineAlarmSignal since 2026-08-31 (part files in `data/raw/telegram/`). The committed `.jsonl.gz` snapshots now hold the complete downloads.
 - Tests: 13 passing (9 panel leakage, 3 timing blend, 1 Telegram feature leakage).
 - Fixed: `war_monitor_features` crashed for channels without strategic-aviation summaries.
 - **In a fresh container:** `bash scripts/restore_data.sh`, `python scripts/download_data.py --pin`, `PYTHONPATH=. python scripts/build_alert_table.py`, `PYTHONPATH=. python scripts/build_panel.py --start 2022-03-01`.
