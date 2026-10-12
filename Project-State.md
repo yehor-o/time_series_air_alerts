@@ -24,12 +24,24 @@ _Last updated: 2026-10-12, ~17:30 Kyiv (session 2)._ Deadline: **today 23:59 Kyi
 - **README** and final docs done (`README.md`, `docs/how_it_works.md` sections 8–9, About page).
 - **NOT done:** merge into main, Netlify deploy (option A, `air-alert-forecast-ua`), live URL in README/About, optional data refresh (D50).
 
+## Data snapshots (all downloads complete)
+- **In git (D15):** `data/telegram/*.jsonl.gz` and `data/labels/official_labels.parquet`. **Complete** downloads:
+  - @war_monitor: 46,492 posts, 2022-04 → 2026-10-11;
+  - @air_alert_ua: 338,360 posts, 2022-03 → 2026-09-07;
+  - @kpszsu: 44,057 posts, 2025-08-31 → 2026-10-12;
+  - @UkraineAlarmSignal: 45,875 posts, 2026-08-31 → 2026-10-12.
+- **In a fresh container:**
+  1. `bash scripts/restore_data.sh`;
+  2. `python scripts/download_data.py --pin`;
+  3. `PYTHONPATH=. python scripts/build_alert_table.py`;
+  4. `PYTHONPATH=. python scripts/build_panel.py --start 2022-03-01`.
+
 ## Session 2 (2026-10-12)
 - Data rebuilt at the pinned commits (both upstream repos have newer commits; the user chose to keep the pins).
-- **Telegram downloads complete:** @kpszsu 44,019 posts (2025-08-31 → 2026-10-12); @UkraineAlarmSignal since 2026-08-31 (part files in `data/raw/telegram/`). The committed `.jsonl.gz` snapshots now hold the complete downloads.
 - Tests: 13 passing (9 panel leakage, 3 timing blend, 1 Telegram feature leakage).
 - Fixed: `war_monitor_features` crashed for channels without strategic-aviation summaries.
-- **In a fresh container:** `bash scripts/restore_data.sh`, `python scripts/download_data.py --pin`, `PYTHONPATH=. python scripts/build_alert_table.py`, `PYTHONPATH=. python scripts/build_panel.py --start 2022-03-01`.
+- @kpszsu ablation (D44) was run on the session's own download (44,019 posts); the committed snapshot from main has 38 more boundary posts. Not used by any model.
+
 
 ## How to run (from the repo root)
 ```
