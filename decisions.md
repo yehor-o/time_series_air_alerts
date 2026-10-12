@@ -257,7 +257,7 @@ The labelling (D25) found these types besides air raids in @air_alert_ua:
 
 Only `air_raid` rows define targets. The typed threats are **kept as possible features** (they carry the threat type), mainly for Zaporizhzhia city.
 
-## D29. Archive holes — Accepted (user, 2026-10-12)
+## D29. Archive holes — Accepted (user, 2026-10-12); refined same day: also require < 50% of raions already under alert
 - A hole is an archive silence of ≥ 2 h nationwide while @war_monitor posts ≥ 10 threat messages.
 - Example: 2026-10-07 00:12–04:02 UTC, during a massive Kh-101 cruise-missile attack (48 threat posts).
 - During a hole, raion truth is unknown, so targets overlapping the window are set to NaN (excluded from training and scoring). Oblast truth gets volunteer patches for alerts not already covered by an active archive alert (none were needed for Oct 7).

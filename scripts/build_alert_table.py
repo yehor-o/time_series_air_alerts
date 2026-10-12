@@ -24,10 +24,11 @@ from src.alerts.telegram import label_official, load_channel
 RAW, OUT, REP = Path("data/raw"), Path("data/processed"), Path("reports")
 HOLE_MIN = pd.Timedelta("2h")  # archive silence this long nationwide is suspicious
 ACTIVE_THREAT_POSTS = 10       # ...and a hole if @war_monitor posts at least this many threat messages meanwhile
+MAX_ACTIVE_SHARE = 0.5         # ...and fewer than half of the raions are already under alert (D29, user 2026-10-12)
 QUIRK_OBLASTS = {"Львівська область", "Волинська область", "Херсонська область"}  # D26 finding
 
 
-def find_holes(archive_air, volunteer, war_monitor):
+def find_holes(archive_air, volunteer, war_monitor, n_raions):
     """Archive silences >= HOLE_MIN with unexplained volunteer alerts, verified by @war_monitor activity."""
     starts = archive_air[archive_air.start >= ARCHIVE_COMPLETE_FROM].start.sort_values()
     gaps = pd.DataFrame({"gap_start": starts.iloc[:-1].reset_index(drop=True),
@@ -40,10 +41,15 @@ def find_holes(archive_air, volunteer, war_monitor):
         unexpl = inside[~explained_by(inside, archive_air)] if len(inside) else inside
         wm = war_monitor[war_monitor.published.between(g.gap_start, g.gap_end)]
         threat = wm.text.str.contains("КР|ракет|балістик|БпЛА|реактив|шахед", case=False).sum()
-        hole = threat >= ACTIVE_THREAT_POSTS
+        mid = g.gap_start + (g.gap_end - g.gap_start) / 2
+        act = archive_air[(archive_air.start <= mid) & (archive_air.end > mid) & archive_air.raion.notna()]
+        active_share = act[["oblast", "raion"]].drop_duplicates().shape[0] / n_raions
+        # a silence is only suspicious if most raions could have started a new alert (were not already under alert)
+        hole = threat >= ACTIVE_THREAT_POSTS and active_share < MAX_ACTIVE_SHARE
         patch = hole and len(unexpl) > 0
         rows.append(dict(gap_start=g.gap_start, gap_end=g.gap_end, hours=round((g.gap_end - g.gap_start).total_seconds() / 3600, 2),
                          volunteer_unexplained=len(unexpl), war_monitor_threat_posts=int(threat),
+                         raions_already_under_alert=round(active_share, 2),
                          judged_hole=hole, volunteer_patches=len(unexpl) if patch else 0))
         if hole:  # raion truth unknown everywhere in the window; oblast truth patched from volunteer
             masks.append(dict(start=g.gap_start, end=g.gap_end))
@@ -69,7 +75,7 @@ def main():
     ev, dropped = raion_events(labeled, archive, volunteer, universe, snapshot)
     raion = merge_intervals(ev, ["oblast", "raion"])
     air = archive[archive.alert_type == "air_raid"].assign(end=lambda d: d.end.fillna(snapshot))
-    holes, patches, masks = find_holes(air, volunteer, wmon)
+    holes, patches, masks = find_holes(air, volunteer, wmon, len(universe))
     obl = oblast_table(raion, patches)
 
     universe.to_csv(OUT / "raions.csv", index=False)
@@ -112,7 +118,9 @@ def main():
     w(f"Volunteer alerts used as oblast-level patches: {len(patches)}"
       + (f" ({', '.join(sorted(patches.oblast.unique()))})" if len(patches) else "") + ".")
     w("A silence counts as a hole when @war_monitor shows heavy threat activity at the same time (at least "
-      f"{ACTIVE_THREAT_POSTS} threat posts): a massive attack without a single new alert is implausible. Raion truth "
+      f"{ACTIVE_THREAT_POSTS} threat posts) **and** fewer than {MAX_ACTIVE_SHARE:.0%} of the raions are already under "
+      "alert (if most of the country is already under alert, no new alert can start, so silence is normal; "
+      "e.g. 2026-10-07, confirmed by the user's alerts.in.ua screenshot). Raion truth "
       "is then unknown nationwide, so the window is written to `masks.parquet` and excluded from raion targets.\n")
     w("## 5. Volunteer quirk in Lviv, Volyn, Kherson (D26)\n")
     w("The volunteer source reports far more alerts in these oblasts than the official system, both before the "
