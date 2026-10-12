@@ -9,7 +9,8 @@ const RAMP = ["#0d366b", "#104281", "#184f95", "#1c5cab", "#256abf", "#2a78d6", 
   const q = new URLSearchParams(location.search).get("theme");
   let th = q;
   try { if (q) localStorage.setItem("theme", q); else th = localStorage.getItem("theme"); } catch (e) { /* storage blocked */ }
-  if (th && th !== "default") document.documentElement.dataset.theme = th;
+  th = th || "noir";  // default design: Editorial Dark
+  if (th !== "classic") document.documentElement.dataset.theme = th;
 })();
 const cv = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
 const V = { bg: cv("--bg"), surface: cv("--surface"), line: cv("--line"), text: cv("--text-primary"), ink: cv("--text-secondary"), muted: cv("--text-muted") };
@@ -61,7 +62,7 @@ async function load() {
     `Прогноз зроблено ${fDayTime.format(new Date(S.D.meta.forecast_time_utc))} (за Києвом) · дані до ${fDayTime.format(new Date(S.D.meta.data_until_utc))}`);
   if (S.D.meta.week_time_utc && S.D.meta.week_time_utc !== S.D.meta.forecast_time_utc)
     $("#asof").textContent += T(` · week view from ${fHour.format(new Date(S.D.meta.week_time_utc))}`, ` · тижневий прогноз від ${fHour.format(new Date(S.D.meta.week_time_utc))}`);
-  initTabs(); initMap(); initControls(); renderLegend("#legend"); initReplay(); renderQuality(); initCheck();
+  initTabs(); initMap(); initControls(); renderLegend("#legend"); renderTopRisk(); initReplay(); renderQuality(); initCheck();
 }
 
 // ---------- static texts (index.html) in Ukrainian; the About page has its own Ukrainian template ----------
@@ -145,6 +146,15 @@ function initMap() {
   }).addTo(S.map);
   S.map.fitBounds(S.layer.getBounds(), { paddingTopLeft: [0, 60] });
 }
+function renderTopRisk() {
+  let box = $("#toprisk");
+  if (!box) { box = el("div", { id: "toprisk", className: "toprisk" }); $("#page-map .mapwrap").append(box); }
+  const lv = S.level, n = S.D.now[lv];
+  const top = Object.keys(n).sort((a, b) => n[b].p3 - n[a].p3).slice(0, 5);
+  box.innerHTML = `<div class="tt">${T(`Highest chance, next 3 h (${lv === "raion" ? "districts" : "oblasts"})`, `Найвища ймовірність, 3 год (${lv === "raion" ? "райони" : "області"})`)}</div>` +
+    top.map((id) => { const [a, b2] = unitName(id).split(/, (.+)/); return `<button data-id="${id}"><span>${a}${b2 ? `<small>${b2}</small>` : ""}</span><b>${pct(n[id].p3)}</b></button>`; }).join("");
+  box.querySelectorAll("button").forEach((b) => (b.onclick = () => select(b.dataset.id)));
+}
 function restyle() {
   S.layer.eachLayer((l) => {
     const p = l.feature.properties;
@@ -174,7 +184,7 @@ function renderLegend(sel, title) {
 function initControls() {
   document.querySelectorAll("[data-level]").forEach((b) => b.onclick = () => {
     document.querySelectorAll("[data-level]").forEach((x) => x.classList.toggle("on", x === b));
-    S.level = b.dataset.level; S.selected = null; restyle(); renderPanel();
+    S.level = b.dataset.level; S.selected = null; restyle(); renderPanel(); renderTopRisk();
   });
   document.querySelectorAll("[data-h]").forEach((b) => b.onclick = () => {
     document.querySelectorAll("[data-h]").forEach((x) => x.classList.toggle("on", x === b));
@@ -211,11 +221,13 @@ function renderPanel() {
   const id = S.selected, lv = S.level, n = S.D.now[lv][id];
   const made = fDayTime.format(new Date(S.D.meta.forecast_time_utc));
   P.innerHTML = `<h2>${unitName(id)}</h2><div class="muted">${T(`${lv === "raion" ? "District" : "Oblast"} forecast, made ${made} Kyiv time`, `Прогноз для ${lv === "raion" ? "району" : "області"}, зроблено ${made} за Києвом`)}</div>
-    <div class="tiles">
-      <div class="tile"><div class="v">${pct(n.p1)}</div><div class="k">${T("new alert within 1 hour", "нова тривога протягом 1 години")}</div></div>
-      <div class="tile"><div class="v">${pct(n.p3)}</div><div class="k">${T("new alert within 3 hours", "нова тривога протягом 3 годин")}</div></div>
-      <div class="tile"><div class="v">${n.dur[0]}–${n.dur[1]} ${T("min", "хв")}</div><div class="k">${T("typical duration if one starts", "типова тривалість, якщо почнеться")}</div></div>
-      <div class="tile"><div class="v">${pct(n.red)}</div><div class="k">${T(`chance it is <span class="chip red">red</span> rather than <span class="chip yellow">yellow</span>`, `ймовірність, що вона <span class="chip red">червона</span>, а не <span class="chip yellow">жовта</span>`)}</div></div>
+    <div class="hero"><div class="hero-v">${pct(n.p3)}</div>
+      <div class="hero-k">${T("chance of a new alert in the next 3 hours", "ймовірність нової тривоги протягом наступних 3 годин")}</div>
+      <div class="hero-bar"><span style="width:${Math.round(n.p3 * 100)}%"></span></div></div>
+    <div class="tiles three">
+      <div class="tile"><div class="v">${pct(n.p1)}</div><div class="k">${T("within 1 hour", "протягом 1 години")}</div></div>
+      <div class="tile"><div class="v">${n.dur[0]}–${n.dur[1]} ${T("min", "хв")}</div><div class="k">${T("typical duration", "типова тривалість")}</div></div>
+      <div class="tile"><div class="v">${pct(n.red)}</div><div class="k">${T(`chance it is <span class="chip red">red</span>`, `шанс, що <span class="chip red">червона</span>`)}</div></div>
     </div>
     <h3>${T("Next 24 hours (Kyiv time)", "Наступні 24 години (за Києвом)")}</h3><div class="cells" id="next24"></div>
     <div class="muted" style="margin-top:6px">${T(`About <b>${n.cnt[0]}–${n.cnt[1]}</b> alerts and <b>${n.hrs[0]}–${n.hrs[1]} h</b> under alert expected.`, `Очікується приблизно <b>${n.cnt[0]}–${n.cnt[1]}</b> тривог і <b>${n.hrs[0]}–${n.hrs[1]} год</b> під тривогою.`)}</div>
