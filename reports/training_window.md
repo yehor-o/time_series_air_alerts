@@ -27,3 +27,14 @@ last 6 months                                        105000  0.1289    0.3989   
 last 3 months                                         52000  0.1371    0.4181   0.8522  0.6843              0.3092
 full, recency-weighted (half-life 12 months)         926000  0.1269    0.3915   0.8701  0.7240              0.3657
 ```
+
+## Raion: new alert within 3h (2 folds)
+
+```
+                                              training rows   Brier  log-loss  ROC-AUC  PR-AUC  skill vs same-hour
+model                                                                                                             
+full history (2022-04 on)                           4614000  0.1350    0.4107   0.8341  0.6292              0.3078
+since 2024-01                                       2700000  0.1349    0.4118   0.8327  0.6264              0.3075
+last 12 months                                      1042000  0.1261    0.3843   0.8623  0.6779              0.3675
+full, recency-weighted (half-life 12 months)        4614000  0.1294    0.3966   0.8521  0.6626              0.3435
+```
