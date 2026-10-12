@@ -50,6 +50,8 @@ async function load() {
   if (S.D.meta.sample) $("#sample-banner").hidden = false;
   $("#asof").textContent = T(`Forecast made at ${fDayTime.format(new Date(S.D.meta.forecast_time_utc))} (Kyiv time) · data up to ${fDayTime.format(new Date(S.D.meta.data_until_utc))}`,
     `Прогноз зроблено ${fDayTime.format(new Date(S.D.meta.forecast_time_utc))} (за Києвом) · дані до ${fDayTime.format(new Date(S.D.meta.data_until_utc))}`);
+  if (S.D.meta.week_time_utc && S.D.meta.week_time_utc !== S.D.meta.forecast_time_utc)
+    $("#asof").textContent += T(` · week view from ${fHour.format(new Date(S.D.meta.week_time_utc))}`, ` · тижневий прогноз від ${fHour.format(new Date(S.D.meta.week_time_utc))}`);
   initTabs(); initMap(); initControls(); renderLegend("#legend"); initReplay(); renderQuality(); initCheck();
 }
 

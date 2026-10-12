@@ -13,12 +13,25 @@ Also: coverage of the 24h ranges on the last validation week (6-12 Sep; the test
 
 Also: history_pred_{level} = hourly 3h forecasts for the 7 days before t, from models trained before that week.
 
-Usage: PYTHONPATH=.:scripts python scripts/predict_now.py
-Output: reports/now_predictions.json
+Modes (D51, D52):
+  (default)  train everything and forecast at the latest 00/12 Kyiv hour (how the published 11/12 Oct forecasts were made)
+  --train    train everything and save the models in models/ (gzipped LightGBM text files + models/meta.json);
+             run twice a month (.github/workflows/retrain.yml)
+  --predict  load the saved models and forecast at the LATEST hour of the data, no training (hourly live run).
+             The week view comes from the latest 00:00/12:00 Kyiv issue time (the timing model's training setup);
+             blocks that have already ended are dropped. history_pred_* is not produced (export_site keeps a rolling log).
+
+Usage: PYTHONPATH=.:scripts python scripts/predict_now.py [--train | --predict]
+Output: reports/now_predictions.json (default, --predict), models/ (--train)
 """
+import argparse
+import gzip
 import json
+import os
 import time
 from pathlib import Path
+
+import lightgbm as lgb
 
 import numpy as np
 import pandas as pd
@@ -31,86 +44,127 @@ from validate_models import BASE_FEATS, PARENT_FEATS, lgb_cls, lgb_reg
 P, REP = Path("data/processed"), Path("reports")
 TUNED = json.loads((REP / "tuning.json").read_text())
 VAL_WEEK = (pd.Timestamp("2026-09-06", tz="UTC"), pd.Timestamp("2026-09-13", tz="UTC"))  # last validation week
+MOD = Path("models")
 
 
-def quant(tr, w, feats, y, X, n=200, alphas=(.25, .75)):
-    return [lgb_reg(objective="quantile", alpha=a, n_estimators=n).fit(tr[feats], tr[y], sample_weight=w,
-                                                                       categorical_feature=["oblast_code"]).predict(X[feats])
+def save_model(m, name):
+    MOD.mkdir(exist_ok=True)
+    with gzip.open(MOD / f"{name}.txt.gz", "wt", encoding="utf-8") as f:
+        f.write(m.booster_.model_to_string())
+
+
+def load_model(name):
+    with gzip.open(MOD / f"{name}.txt.gz", "rt", encoding="utf-8") as f:
+        return lgb.Booster(model_str=f.read())
+
+
+def pred(m, X):
+    """Probability (classifiers) or value (regressors), for fitted sklearn models and loaded boosters alike."""
+    if hasattr(m, "predict_proba"):
+        return m.predict_proba(X)[:, 1]
+    return m.predict(X)
+
+
+def quant_models(tr, w, feats, y, n=200, alphas=(.25, .75)):
+    return [lgb_reg(objective="quantile", alpha=a, n_estimators=n).fit(tr[feats], tr[y], sample_weight=w, categorical_feature=["oblast_code"])
             for a in alphas]
 
 
-def main():
+def quant(tr, w, feats, y, X, n=200, alphas=(.25, .75)):
+    return [m.predict(X[feats]) for m in quant_models(tr, w, feats, y, n, alphas)]
+
+
+def main(mode="full"):
+    """mode: full (train + forecast at the latest 00/12 Kyiv hour), train (save models), predict (saved models, latest hour)."""
     t0 = time.time()
     log = lambda m: print(f"[{time.time() - t0:6.0f}s] {m}", flush=True)
     araion = pd.read_parquet(P / "alerts_raion.parquet")
     data_until = max(araion.start.max(), araion.end.max())
     out, coverage = {}, {}
+    meta = json.loads((MOD / "meta.json").read_text()) if mode == "predict" else {}
     for level in ("raion", "oblast"):
         pan = pd.read_parquet(P / f"panel_{level}.parquet")
-        # forecast moment: the latest 00:00 / 12:00 Kyiv hour in the data (the timing model is trained on those issue
-        # times); nothing after t is used. Targets are only known for windows ending before lk.
-        t = issue_times(pan.time.max() - pd.Timedelta("2D"), pan.time.max())[-1]
-        lk = t + pd.Timedelta("1h")
-        start = t - pd.Timedelta("400D") if level == "raion" else FIRST
+        # issue time for training / the week view: the latest 00:00 / 12:00 Kyiv hour in the data (the timing model is
+        # trained on those issue times). Live forecasts (predict) use the latest hour. Nothing after t is used.
+        t_w = issue_times(pan.time.max() - pd.Timedelta("2D"), pan.time.max())[-1]
+        t = pan.time.max() if mode == "predict" else t_w
+        lk = t_w + pd.Timedelta("1h")  # training targets must be known before this
+        start = (t - pd.Timedelta("400D") if level == "raion" else FIRST) if mode != "predict" else t - pd.Timedelta("2D")
         df = pan[pan.time >= start].copy()
         df["oblast_code"] = df.oblast.astype("category")
         feats = BASE_FEATS + (PARENT_FEATS if level == "raion" else [])
         now = df[df.time == t].set_index("unit")
         res = pd.DataFrame(index=now.index)
-        log(f"{level}: forecast moment {t}, {len(now)} units")
+        log(f"{level}: mode {mode}, forecast moment {t}, {len(now)} units")
+        M = {}
+        if mode == "predict":
+            M = {k: load_model(f"{level}_{k}") for k in ("p1", "p3", "dur_lo", "dur_hi", "cnt_lo", "cnt_hi", "hrs_lo", "hrs_hi", "timing")}
+        else:
+            for h in (1, 3):
+                y = f"y_start_{h}h"
+                tr, w = training(df[df[y].notna()], lk, h, level)
+                M[f"p{h}"] = lgb_cls(**TUNED[level]["params"]).fit(tr[feats], tr[y], sample_weight=w, categorical_feature=["oblast_code"])
+                if h == 3 and mode == "full":  # history strip: the 7 days before t, from a model trained only on data before that week
+                    h0 = t - pd.Timedelta("168h")
+                    trh, wh = training(df[df[y].notna()], h0, h, level)
+                    mh = lgb_cls(**TUNED[level]["params"]).fit(trh[feats], trh[y], sample_weight=wh, categorical_feature=["oblast_code"])
+                    win = df[(df.time >= h0) & (df.time < t)]
+                    hp = pd.Series(mh.predict_proba(win[feats])[:, 1], index=[win.unit, win.time])
+                    grid = pd.date_range(h0, t - pd.Timedelta("1h"), freq="h")
+                    out[f"history_pred_{level}"] = {u: [round(float(hp.get((u, g), np.nan)), 3) for g in grid] for u in res.index}
+            d = df[df.y_dur_3h.notna() & (df.y_dur_3h > 0)]
+            tr, w = training(d, lk, 3 + 72, level)
+            M["dur_lo"], M["dur_hi"] = quant_models(tr, w, feats, "y_dur_3h", n=300)
+            d = df[df.y_count_24h.notna()]
+            tr, w = training(d, lk, 24, level)
+            M["cnt_lo"], M["cnt_hi"] = quant_models(tr, w, feats, "y_count_24h")
+            M["hrs_lo"], M["hrs_hi"] = quant_models(tr, w, feats, "y_hours_24h")
+            # coverage of the 24h ranges on the last validation week (models trained before it)
+            trv, wv = training(d, VAL_WEEK[0], 24, level)
+            va = d[(d.time >= VAL_WEEK[0]) & (d.time < VAL_WEEK[1])]
+            coverage[level] = {}
+            for y in ("y_count_24h", "y_hours_24h"):
+                lo, hi = quant(trv, wv, feats, y, va)
+                k = 0 if y == "y_count_24h" else 1  # same rounding as shown on the site
+                lo, hi = np.round(np.minimum(lo, hi), k), np.round(np.maximum(lo, hi), k)
+                coverage[level][y] = {"inside_25_75_range": float(np.mean((va[y] >= lo) & (va[y] <= hi))), "rows": int(len(va))}
+        for k in ("p1", "p3", "dur_lo", "dur_hi", "cnt_lo", "cnt_hi", "hrs_lo", "hrs_hi"):
+            res[k] = pred(M[k], now[feats])
+        log(f"{level}: point targets done")
 
-        for h in (1, 3):
-            y = f"y_start_{h}h"
-            tr, w = training(df[df[y].notna()], lk, h, level)
-            m = lgb_cls(**TUNED[level]["params"]).fit(tr[feats], tr[y], sample_weight=w, categorical_feature=["oblast_code"])
-            res[f"p{h}"] = m.predict_proba(now[feats])[:, 1]
-            if h == 3:  # history strip: the 7 days before t, forecast by a model trained only on data before that week
-                h0 = t - pd.Timedelta("168h")
-                trh, wh = training(df[df[y].notna()], h0, h, level)
-                mh = lgb_cls(**TUNED[level]["params"]).fit(trh[feats], trh[y], sample_weight=wh, categorical_feature=["oblast_code"])
-                win = df[(df.time >= h0) & (df.time < t)]
-                hp = pd.Series(mh.predict_proba(win[feats])[:, 1], index=[win.unit, win.time])
-                grid = pd.date_range(h0, t - pd.Timedelta("1h"), freq="h")
-                history_pred = {u: [round(float(hp.get((u, g), np.nan)), 3) for g in grid] for u in res.index}
-        d = df[df.y_dur_3h.notna() & (df.y_dur_3h > 0)]
-        tr, w = training(d, lk, 3 + 72, level)
-        res["dur_lo"], res["dur_hi"] = quant(tr, w, feats, "y_dur_3h", now, n=300)
-        d = df[df.y_count_24h.notna()]
-        tr, w = training(d, lk, 24, level)
-        res["cnt_lo"], res["cnt_hi"] = quant(tr, w, feats, "y_count_24h", now)
-        res["hrs_lo"], res["hrs_hi"] = quant(tr, w, feats, "y_hours_24h", now)
-        # coverage of the 24h ranges on the last validation week (models trained before it)
-        trv, wv = training(d, VAL_WEEK[0], 24, level)
-        va = d[(d.time >= VAL_WEEK[0]) & (d.time < VAL_WEEK[1])]
-        coverage[level] = {}
-        for y in ("y_count_24h", "y_hours_24h"):
-            lo, hi = quant(trv, wv, feats, y, va)
-            k = 0 if y == "y_count_24h" else 1  # same rounding as shown on the site
-            lo, hi = np.round(np.minimum(lo, hi), k), np.round(np.maximum(lo, hi), k)
-            coverage[level][y] = {"inside_25_75_range": float(np.mean((va[y] >= lo) & (va[y] <= hi))),
-                                  "rows": int(len(va))}
-        log(f"{level}: point targets done, coverage {coverage[level]}")
-
-        # week ahead (D42/D45): timing rows for the issue time t
+        # week ahead (D42/D45): timing rows for the issue time t_w
         hist_days, hl = (365, None) if level == "raion" else (730, 365)
         tf = [f for f in feats if f != "oblast_code"]
-        tp = pan[pan.time >= t - pd.Timedelta(days=hist_days + 30)]
+        tp = pan[pan.time >= t_w - pd.Timedelta(days=(45 if mode == "predict" else hist_days + 30))]
         parent = dict(zip(tp.unit, tp.oblast)) if level == "raion" else None
-        iss = issue_times(tp.time.min() + pd.Timedelta("20D"), t)
-        assert iss[-1] == t, f"forecast moment {t} is not a 00/12 Kyiv issue time"
+        iss = issue_times(tp.time.min() + pd.Timedelta("20D"), t_w)
+        if mode == "predict":
+            iss = iss[iss == t_w]
+        assert iss[-1] == t_w, f"{t_w} is not a 00/12 Kyiv issue time"
         rows = timing_rows(tp, tf, iss, lk, parent_of=parent)
         rows["oblast_code"] = rows.unit.str.split("|").str[0].astype("category")
         X = tf + TIMING_EXTRA + (["parent_blk_rate14"] if level == "raion" else []) + ["oblast_code"]
         num = [c for c in X if c != "oblast_code"]
         rows[num] = rows[num].astype("float32")
-        tr = rows[rows.y_block.notna() & (rows.block_start + pd.Timedelta("3h") <= lk) & (rows.issue_time >= t - pd.Timedelta(days=hist_days))]
-        te = rows[rows.issue_time == t].sort_values(["unit", "lead_h"])
-        w = None if hl is None else 0.5 ** ((lk - tr.issue_time).dt.total_seconds() / 86400 / hl)
-        pm = lgb_cls(n_estimators=300).fit(tr[X], tr.y_block, sample_weight=w, categorical_feature=["oblast_code"]).predict_proba(te[X])[:, 1]
-        te = te.assign(p=blend_timing(pm, te.blk_rate14.fillna(tr.y_block.mean()).values, te.lead_h.values))
+        te = rows[rows.issue_time == t_w].sort_values(["unit", "lead_h"])
+        if mode == "predict":
+            prior = meta["timing_prior"][level]
+        else:
+            tr = rows[rows.y_block.notna() & (rows.block_start + pd.Timedelta("3h") <= lk) & (rows.issue_time >= t_w - pd.Timedelta(days=hist_days))]
+            w = None if hl is None else 0.5 ** ((lk - tr.issue_time).dt.total_seconds() / 86400 / hl)
+            M["timing"] = lgb_cls(n_estimators=300).fit(tr[X], tr.y_block, sample_weight=w, categorical_feature=["oblast_code"])
+            prior = float(tr.y_block.mean())
+            meta.setdefault("timing_prior", {})[level] = prior
+        pm = pred(M["timing"], te[X])
+        te = te.assign(p=blend_timing(pm, te.blk_rate14.fillna(prior).values, te.lead_h.values))
+        te = te[te.block_start + pd.Timedelta("3h") > t]  # drop blocks that already ended (live runs between 00/12)
         week = te.groupby("unit", sort=False).p.apply(list)
         blocks = sorted(te.block_start.unique())
         log(f"{level}: week ahead done ({len(blocks)} blocks from {pd.Timestamp(blocks[0])})")
+        if mode == "train":
+            for k, m in M.items():
+                save_model(m, f"{level}_{k}")
+            log(f"{level}: models saved")
 
         # red share (D35): unit's alerts that started in the last 7 days before t
         if level == "raion":
@@ -130,15 +184,32 @@ def main():
                              "week": [round(float(x), 3) for x in week[u]]}
             out[level][u]["next24"] = out[level][u]["week"][:8]
         out["forecast_time_utc"] = t.isoformat()
-        out[f"history_pred_{level}"] = history_pred
+        out["week_time_utc"] = t_w.isoformat()
         out["block_starts_utc"] = [pd.Timestamp(b).tz_localize("UTC").isoformat() if pd.Timestamp(b).tzinfo is None
                                    else pd.Timestamp(b).isoformat() for b in blocks]
-        del rows, tr, te
-    out["data_until_utc"] = min(data_until, pd.Timestamp(out["forecast_time_utc"])).isoformat()  # nothing after t is used
-    out["range_coverage_validation_week"] = coverage
-    (REP / "now_predictions.json").write_text(json.dumps(out, ensure_ascii=False), encoding="utf-8")
+        del rows, te
+    out["data_until_utc"] = min(data_until, pd.Timestamp(out["forecast_time_utc"])).isoformat()  # inputs use only data before t
+    if mode == "predict":
+        out["range_coverage_validation_week"] = meta["coverage"]
+        out["models_trained_utc"] = meta["trained_utc"]
+    else:
+        out["range_coverage_validation_week"] = coverage
+    if mode == "train":
+        vf = Path(os.environ.get("VERSIONS_FILE", "data/versions.json"))  # which data versions the models were trained on
+        versions = json.loads(vf.read_text()) if vf.exists() else {}
+        meta.update({"trained_utc": out["forecast_time_utc"], "data_until_utc": out["data_until_utc"], "coverage": coverage,
+                     "data_versions": versions})
+        (MOD / "meta.json").write_text(json.dumps(meta, indent=1), encoding="utf-8")
+        log(f"meta saved; models: {sum(f.stat().st_size for f in MOD.glob('*.txt.gz')) / 1e6:.1f} MB")
+    else:
+        (REP / "now_predictions.json").write_text(json.dumps(out, ensure_ascii=False), encoding="utf-8")
     log("done")
 
 
 if __name__ == "__main__":
-    main()
+    ap = argparse.ArgumentParser()
+    g = ap.add_mutually_exclusive_group()
+    g.add_argument("--train", action="store_true")
+    g.add_argument("--predict", action="store_true")
+    a = ap.parse_args()
+    main("train" if a.train else "predict" if a.predict else "full")

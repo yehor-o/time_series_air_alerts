@@ -1,6 +1,6 @@
 """Forecast check (site page "Forecast check"): saved forecasts vs what actually happened.
 
-1. Archive: every published forecast is saved once as site/data/archive/<YYYY-MM-DDTHH>Z.json (the next-24h part:
+1. Archive: every published 00:00 / 12:00 Kyiv forecast is saved once as site/data/archive/<YYYY-MM-DDTHH>Z.json (the next-24h part:
    p1, p3, the 8 Kyiv 3-hour blocks, count and hours ranges), from reports/now_predictions.json.
    --from-git <commit> also archives an older published forecast from the site files in that git commit.
 2. Check: for every archived forecast, the actual outcome from the current data, with the same definitions the models
@@ -49,7 +49,8 @@ def main(git_commit=None):
     if git_commit:
         save(from_git(git_commit))
     now = json.loads((REP / "now_predictions.json").read_text())
-    save(snapshot(now["forecast_time_utc"], now["block_starts_utc"], now["raion"], now["oblast"]))
+    if pd.Timestamp(now["forecast_time_utc"]).tz_convert("Europe/Kyiv").hour in (0, 12):  # archive the 00:00 / 12:00 Kyiv forecasts only
+        save(snapshot(now["forecast_time_utc"], now["block_starts_utc"], now["raion"], now["oblast"]))
 
     pan = {lv: pd.read_parquet(P / f"panel_{lv}.parquet", columns=["time", "unit", "y_start_1h", "y_count_24h", "y_hours_24h"])
            for lv in ("raion", "oblast")}
