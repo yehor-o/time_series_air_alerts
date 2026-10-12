@@ -239,3 +239,160 @@ Script: `scripts/explore_spatial_options.py`. Full tables: `reports/spatial_opti
 ## D26. Filling holes with volunteer data — Accepted, with verification
 - Before using a volunteer alert to fill a hole in the archive (e.g. 2026-10-07 ~00:12–04:02 UTC), **verify it** against @air_alert_ua (before 2026-09-07) and @war_monitor posts (threat activity in that oblast around that time).
 - Investigate why Lviv and Volyn have many volunteer alerts the archive lacks, and report the findings to the user.
+
+---
+# Overnight decisions (2026-10-11/12) — all Proposed, for the user's review
+
+## D27. What counts as an alert in a raion — Proposed
+- A raion is "under alert" when there is an air-raid alert for the raion itself, for its whole oblast (disaggregation, D22), or for a hromada or city inside it (e.g. "м. Харків" → Kharkivskyi raion). In words: "an alert somewhere in the raion".
+- Official rows whose message could not be found (`unknown`): kept at oblast/raion level, where artillery and threat messages never occur, and dropped at hromada level, where most messages are artillery threats. Counts are in `reports/data_quality.md`.
+- Name fixes: three raions renamed in 2024 (Володимирський, Шептицький, Берестинський) are mapped to the official old names, and the 7 archive cities to their raions (`src/alerts/sources.py`).
+
+## D28. Message types excluded from targets — Proposed
+The labelling (D25) found these types besides air raids in @air_alert_ua:
+- artillery threats;
+- urban fights;
+- typed threats: strike drones "Загроза ударних БпЛА", missiles "Ракетна загроза", ballistic "Загроза балістики", guided bombs (KAB) "Загроза керованих авіабомб";
+- radiation danger.
+
+Only `air_raid` rows define targets. The typed threats are **kept as possible features** (they carry the threat type), mainly for Zaporizhzhia city.
+
+## D29. Archive holes — Accepted (user, 2026-10-12); refined same day: also require < 50% of raions already under alert
+- A hole is an archive silence of ≥ 2 h nationwide while @war_monitor posts ≥ 10 threat messages.
+- Example: 2026-10-07 00:12–04:02 UTC, during a massive Kh-101 cruise-missile attack (48 threat posts).
+- During a hole, raion truth is unknown, so targets overlapping the window are set to NaN (excluded from training and scoring). Oblast truth gets volunteer patches for alerts not already covered by an active archive alert (none were needed for Oct 7).
+
+## D30. Volunteer quirk in Lviv, Volyn, Kherson — OPEN (user: find other sources before deciding)
+- The volunteer source records many more alerts there than the official system:
+  - Lviv: about 5/day volunteer vs about 0.5/day official before the reform;
+  - after the reform: 117 of 134 Lviv volunteer alerts are not in the archive.
+- @war_monitor never mentions these oblasts around the unexplained alerts.
+- Conclusion: a volunteer-side quirk, not an archive gap. These alerts are never used as patches.
+
+## D31. Time grid and splits — Proposed
+- Issue times: every hour from 2024-01-01. The first training row is 2024-01-31, after a 30-day warm-up for the rate features.
+- **Test period: 2026-09-13 00:00 UTC → end of data (2026-10-11 09:00).** Untouched until the user says go.
+- Validation: 4 weekly walk-forward folds before the test period (Aug 16, Aug 23, Aug 30, Sep 6). Training rows are purged so their target windows end before the fold starts.
+- The training-window length (all since 2024 / 12 / 6 / 3 months) is compared on the folds (D7).
+
+## D32. Yellow/red split — Accepted (user, 2026-10-12: 3 weeks train + 2 weeks test)
+- There are only about 5 weeks of data with levels, so the red model gets its own split:
+  - train from 2026-09-06;
+  - validate on the weeks of Sep 13–19 and Sep 20–26;
+  - test on Sep 27 → end.
+- This overlaps the main test window, but it's a different model, and the main models never see these weeks during validation.
+- The alternative (validate only inside Sep 6–12) leaves a single week of training. That's too thin.
+
+## D33. 24h timing target — Proposed
+"When are alerts most likely?" = four probabilities: a new alert starts in hours +0–6, +6–12, +12–18 or +18–24 after the issue time. On the website these can be shown in local clock time.
+
+## D34. Small technical choices — Proposed
+- "Same hour, last N days" rates use the UTC hour (the DST shift is ignored; it's a 1-hour offset twice a year).
+- LightGBM settings are fixed and not tuned yet: 400 trees, learning rate 0.05, 63 leaves, min 500 rows per leaf.
+- Logistic regression gets log-transformed counts and sine/cosine of hour and weekday.
+
+## D35. Model choice after validation — Proposed (see reports/validation.md)
+- New-alert probabilities (1h, 3h; raion and oblast) and 24h timing: **LightGBM**, trained on the last 12 months.
+- 24h count and hours, and duration: LightGBM is only marginally better than persistence. Show them as **typical ranges** (e.g. "usually 30–120 min"), not precise numbers. Candidates for improvement: quantile models, features from Telegram.
+- Red given alert: the **simple rule "raion red share in the last 7 days"** or the 5-feature logistic regression. Full models overfit the ~2–3 weeks of reform data.
+
+---
+# User feedback 2026-10-12 (morning)
+
+## D36. Role of each source — Accepted (user principle)
+- **Whether** there is an alert, and its details: official data (until 2026-09-07) and alerts.in.ua (JustJimer archive).
+- **What kind** of threat it is: @war_monitor. It is not reliable for tracking alerts themselves.
+- The hole rule (D29) follows this: the archive decides; @war_monitor only flags "a big attack was going on, so silence is suspicious".
+
+## D37. 🟠 "Загроза ударних БпЛА / Загроза БпЛА невизначеного типу" = FPV-type drones — Accepted (user's interpretation)
+These posts only appear for frontline communities (Nikopol 8,495, Kharkiv 3,172, Zaporizhzhia 933). They are a separate, local threat type, not the yellow "drone" alert level.
+
+## D38. @war_monitor as a yellow/red labeller — tested, does NOT work well enough (2026-10-12)
+**Test:** for 11,162 alert groups since 2026-09-06 (oblast × start minute, true level known; 29% red), rules based on @war_monitor posts within −60…+15 min of the alert start:
+
+| Rule | Balanced accuracy | Red precision | Red recall |
+|---|---|---|---|
+| any nationwide missile post → red | 0.56 | 0.44 | 0.24 |
+| missile post naming the oblast → red | 0.51 | 0.60 | 0.03 |
+| oblast missile, or nationwide missile and no oblast drone | 0.56 | 0.46 | 0.22 |
+| score (oblast missile, nationwide missile, oblast drone) | AUC 0.57 | | |
+
+Balanced accuracy 0.5 = coin flip. Other windows (−30…+10, −120…+30) give the same picture.
+
+**Why:**
+- @war_monitor names the oblast in only 12% of alerts: Kyiv City 47%, Kyiv oblast 41%, but 0–3% for frontline oblasts where red is common (Dnipropetrovsk 86% red, Donetsk 70%, Kharkiv 56%).
+- Red there is mostly local aviation/KAB/missile activity the channel doesn't cover.
+
+**Consequence:** we don't create pseudo yellow/red labels for August and earlier from @war_monitor. Its posts remain candidate *features* (e.g. "missile activity nationwide in the last hours").
+
+## D39. Artillery warnings — OPEN (to discuss with the user)
+Facts:
+- 22,273 official rows in 18 hromadas since 2022-05.
+- Since 2026, effectively only **Nikopol** (under an artillery warning ~68% of the time), **Marhanets** (~100%; warnings overlap) and **Pokrovska** (until 2026-07) and **Chervonohryhorivka** (until 2026-03).
+- After the reform the archive has artillery warnings only for Nikopol and Marhanets (322 records).
+
+Options:
+- (a) Keep them out of the air-raid targets (current).
+- (b) Add them as a separate small target "artillery warning starts in hromada X", for the 2 active communities.
+- (c) Count them as alerts for their raion.
+
+---
+# Accepted 2026-10-12 (afternoon)
+
+## D40. History used for training — Accepted (user), from reports/training_window.md
+- **Oblast models:** full history (from 2022-04) with **recency weights**, half-life 12 months: a row from d days before the training cut-off gets weight 0.5^(d / 365).
+- **Raion models:** the **last 12 months** only. Older raion rows are copies of oblast-wide alerts (disaggregation) and teach a pattern that no longer exists.
+
+## D41. Presentation of the weak targets — Accepted (user)
+- Duration: a range "usually X–Y min" = predicted 25th–75th percentile (LightGBM quantile models).
+- Duration bands are not shown.
+- 24h count and hours under alert: shown as ranges.
+
+## D42. Timing model (plan C) — Accepted (user)
+One LightGBM predicts P(new alert starts) for each 3-hour **Kyiv-time** block of the next 7 days (56 blocks). Blocks 1–8 = "next 24h: approximately when"; all 56 = the week-ahead heatmap and a week-ahead strip.
+
+## D43. Website — Accepted (user)
+- Title: **"Time-Series Air Alert Forecast, Ukraine (demo)"**.
+- **Desktop only** (no phone layout).
+- **Leaflet 1.9.4 from cdnjs** approved as the map library. No external map tiles.
+- All times shown in **Kyiv time**.
+- Click panel: history strip (actual alerts + predicted probability on the same timeline) **and a separate week-ahead strip**.
+- Pages: Map, Replay (test weeks), How good is it? (incl. with vs without Telegram), About.
+
+## D44. Telegram (@war_monitor) as input — result: NOT used (rule agreed with the user)
+`reports/telegram_ablation.md`, 4 validation weeks, accepted training history (D40):
+
+| Target | Raion without / with | Oblast without / with |
+|---|---|---|
+| 1h skill | 0.186 / 0.179 | 0.214 / 0.208 |
+| 3h skill | 0.326 / 0.279 | 0.366 / 0.353 |
+| 24h count MAE | 1.48 / 1.50 | 1.64 / 1.67 |
+| 24h hours MAE | 1.91 / 1.95 | 2.02 / 2.06 |
+
+@war_monitor makes every target slightly worse, so the map uses the plain models. Both are shown on "How good is it?".
+
+**Next candidate:** @kpszsu (Air Force, ~350 posts/day, 81% name an oblast, 21 oblasts; @war_monitor has 31/day and 14 oblasts). It is being downloaded since 2025-09 and should be tested with the same script once complete.
+
+## D45. Timing model: model for days 1–2, pattern rule for days 3–7 — Proposed
+`reports/timing_validation.md`, 2 validation weeks. AUC by lead day:
+
+| Lead | Raion: pattern / model | Oblast: pattern / model |
+|---|---|---|
+| day 1 | 0.759 / 0.803 (skill +0.08) | 0.769 / 0.804 (+0.10) |
+| day 2 | 0.765 / 0.782 (+0.03) | 0.778 / 0.792 (+0.04) |
+| day 3–7 | about equal; the model's Brier is worse (skill −0.02…−0.07) | same |
+
+**Proposal:** the week-ahead view uses the LightGBM timing model for blocks in the first 48 h and the pattern rule ("share of the last 14 days with a new alert in this clock block") for days 3–7. That's honest and simple.
+
+## D46. @UkraineAlarmSignal — candidate second alert source (2026-10-12)
+- An alert feed: raion/city, **yellow/red level**, all-clears, local typed threats (БПЛА, КАБ).
+- About 1,500 posts/day, 93% name an oblast. History since 2022-02-25 (~654k posts).
+- Being downloaded for the reform period only (since 2026-09-01).
+- Uses:
+  - an independent cross-check of the JustJimer archive (holes, Lviv/Volyn, D30);
+  - yellow/red truth;
+  - per-city threat-type inputs.
+
+## D15 (follow-up). Commit compressed Telegram data — Accepted (user, 2026-10-12)
+Re-scraping takes hours (@air_alert_ua alone ~5 h). Proposal: commit `.jsonl.gz` copies of the scraped channels and `official_labels.parquet` (tens of MB) so a new session/container doesn't need to re-download.
+Done: `data/telegram/*.jsonl.gz` (all scraped channels, 8.3 MB; @kpszsu and @UkraineAlarmSignal are PARTIAL snapshots taken mid-download) and `data/labels/official_labels.parquet` (5 MB). Restore with `scripts/restore_data.sh`.

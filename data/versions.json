@@ -1,0 +1,10 @@
+{
+  "vadimkin": {
+    "repo": "Vadimkin/ukrainian-air-raid-sirens-dataset",
+    "commit": "bf0c323c78e3e4508721458797dcd38c95df13f3"
+  },
+  "justjimer": {
+    "repo": "JustJimer/ukraine-air-alert-stats",
+    "commit": "7abc556ba5a0ff47a9e33c6abc136b8da3a9feb8"
+  }
+}
