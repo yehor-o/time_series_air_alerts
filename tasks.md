@@ -24,9 +24,9 @@ Deadline: **Mon 2026-10-12, 23:59 Kyiv**. Done items from earlier phases are sum
 6. [x] Re-checked: both repos have newer commits; user chose to keep the pins
 7. [x] **Final choice table** signed off (D47 accepted)
 8. [x] **Final test run** done (`reports/test_results.md`, `test_metrics.json`, hourly predictions in `reports/test_predictions_*.parquet`)
-9. [ ] Retrain on all data → "now" + week-ahead predictions
-10. [ ] `scripts/export_site.py` → `site/data/{meta,now,week,history,replay,metrics}.json` (same format as the sample)
-11. [ ] Site: real data, quality page numbers (incl. with/without Telegram), screenshots → user
+9. [x] Retrain on all data → "now" + week-ahead predictions (`scripts/predict_now.py` → `reports/now_predictions.json`)
+10. [x] `scripts/export_site.py` → real `site/data/*.json` (sample banner gone)
+11. [ ] Site: real data DONE, screenshots in `reports/screens/`; NEXT: model-comparison page with graphs (to discuss with the user)
 12. [ ] Netlify deploy (with the user; `netlify.toml` publishes `site/`)
 13. [ ] README, final explanation, merge into main
 

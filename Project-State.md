@@ -19,8 +19,8 @@ _Last updated: 2026-10-12, ~17:30 Kyiv (session 2)._ Deadline: **today 23:59 Kyi
   - 24h hours under alert: 8% better than the 7-day average; 24h count: 4–8% WORSE than the 7-day average.
   - Timing blend: raion +0.003 skill vs pattern; oblast −0.035 (the oblast timing model is badly calibrated on the test weeks).
   - Red vs yellow (test from 27 Sep): AUC 0.845 for the 7-day red-share rule.
-- **Website: skeleton done** in `site/` on SAMPLE data (map, click panel, strips, heatmap, replay, quality, about). Real data export not done yet.
-- **NOT done:** final test run (13 Sep – 11 Oct), "now" and week-ahead predictions, `scripts/export_site.py`, Netlify deploy, README.
+- **Website shows REAL data** (`scripts/predict_now.py` + `scripts/export_site.py`): forecast moment 2026-10-11 09:00 UTC (12:00 Kyiv), pinned data. Screenshots: `reports/screens/`. 24h ranges cover 52–65% on the last validation week (ideal 50%).
+- **NOT done:** model-comparison page, Netlify deploy, README, optional data refresh (D50).
 
 ## Session 2 (2026-10-12)
 - Data rebuilt at the pinned commits (both upstream repos have newer commits; the user chose to keep the pins).
