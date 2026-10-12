@@ -403,3 +403,16 @@ Only the oblast 24h count improves slightly; every probability target is the sam
 ## D15 (follow-up). Commit compressed Telegram data — Accepted (user, 2026-10-12)
 Re-scraping takes hours (@air_alert_ua alone ~5 h). Proposal: commit `.jsonl.gz` copies of the scraped channels and `official_labels.parquet` (tens of MB) so a new session/container doesn't need to re-download.
 Done: `data/telegram/*.jsonl.gz` (all scraped channels, 8.3 MB; @kpszsu and @UkraineAlarmSignal are PARTIAL snapshots taken mid-download) and `data/labels/official_labels.parquet` (5 MB). Restore with `scripts/restore_data.sh`.
+
+## D47. LightGBM settings for the new-alert classifiers (1h, 3h) — Proposed (2026-10-12)
+`reports/tuning.md`, `scripts/tune_lgbm.py`. 12 candidates (current + 11 drawn from a grid fixed in advance), 4 validation weeks, test untouched. Adoption rule fixed before running: better than the current settings in ≥ 3 of 4 weeks, ≥ 0.5% lower average Brier, not worse on 1h.
+
+| Level | Chosen settings | 3h Brier current → new | weeks better | 3h skill | 1h Brier current → new |
+|---|---|---|---|---|---|
+| Raion | 31 leaves, min 500 rows/leaf, lr 0.03 × 700 trees, 60% of inputs per tree | 0.1333 → 0.1320 (−1.0%) | 4 of 4 | 0.326 → 0.333 | 0.0771 → 0.0769 |
+| Oblast | 31 leaves, min 1000 rows/leaf, lr 0.03 × 700 trees, 60% of inputs per tree | 0.1269 → 0.1258 (−0.8%) | 3 of 4 | 0.366 → 0.371 | 0.0799 → 0.0794 |
+
+- Pattern: simpler trees and fewer inputs per tree help a little; the most complex trees (127 leaves) are the only clearly worse option. The current settings were slightly too detailed.
+- Gains are small (about +0.005–0.007 skill) but consistent.
+- Scope: only the 1h/3h new-alert classifiers. Duration, 24h count/hours, timing and red/yellow keep the D34 settings.
+- Alternative: one setting for both levels (candidate 4 also passed for oblast, −0.5%); the rule picks the lowest Brier, so candidate 6 for oblast.

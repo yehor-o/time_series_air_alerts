@@ -17,7 +17,7 @@ Deadline: **Mon 2026-10-12, 23:59 Kyiv**. Done items from earlier phases are sum
 1. [x] Finish the Telegram downloads (@kpszsu, @UkraineAlarmSignal)
 2. [x] D45 decided: blend model/pattern (user, after `reports/timing_variants.md`); implemented in `src/alerts/timing.py`
 2b. [x] Committed Telegram snapshots refreshed with the complete @kpszsu and @UkraineAlarmSignal downloads
-3. [ ] **LightGBM tuning**, time-boxed (~40 min, validation folds only), raion + oblast 3h
+3. [x] **LightGBM tuning** done: small gains, D47 Proposed (`reports/tuning.md`)
 4. [x] @kpszsu features: NOT used, worse on probability targets (D44, `reports/kpszsu_ablation.md`)
 
 5. [ ] (if time) @UkraineAlarmSignal cross-check of the archive (holes, Lviv/Volyn, yellow/red)

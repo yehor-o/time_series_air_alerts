@@ -12,7 +12,8 @@ _Last updated: 2026-10-12, ~17:30 Kyiv (session 2)._ Deadline: **today 23:59 Kyi
   - yellow/red: the best on validation (currently the simple 7-day share rule);
   - Telegram not used: neither @war_monitor nor @kpszsu helps (D44);
   - week-ahead timing = blend of model and pattern rule, w = 1 − lead/72 h (D45, accepted).
-- **Final choice table:** `reports/final_choices.md`, waiting for the user's sign-off. LightGBM tuning: not done.
+- **LightGBM tuning done** (D47, Proposed): 3h skill raion 0.326 → 0.333, oblast 0.366 → 0.371.
+- **Final choice table:** `reports/final_choices.md`, waiting for the user's sign-off.
 - **Website: skeleton done** in `site/` on SAMPLE data (map, click panel, strips, heatmap, replay, quality, about). Real data export not done yet.
 - **NOT done:** final test run (13 Sep – 11 Oct), "now" and week-ahead predictions, `scripts/export_site.py`, Netlify deploy, README.
 
