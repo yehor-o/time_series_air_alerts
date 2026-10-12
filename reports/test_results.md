@@ -135,3 +135,34 @@ baseline: same as last 24h              2.170             1.014  3.591          
 baseline: daily average of last 7 days  2.028             1.092  3.160                   0.000
 LightGBM (chosen)                       1.870             0.897  3.058                   0.078
 ```
+
+### When: new alert in each 3-hour Kyiv block of the next 7 days
+
+Forecasts issued at 00:00 and 12:00 Kyiv inside the test period; 329,868 (unit, issue, block) cases whose block ended before the end of data (later days of the week have fewer cases).
+
+All blocks:
+
+```
+                     Brier  log-loss  ROC-AUC  PR-AUC  skill vs pattern
+pattern rule        0.1715    0.5499   0.8091  0.6480           -0.0000
+timing model alone  0.1795    0.5296   0.8038  0.6556           -0.0464
+blend (chosen)      0.1711    0.5281   0.8108  0.6553            0.0025
+```
+
+ROC-AUC by lead day:
+
+```
+                    day 1  day 2  day 3  day 4  day 5  day 6  day 7
+pattern rule        0.813  0.808  0.808  0.807  0.810  0.810  0.807
+timing model alone  0.812  0.803  0.801  0.802  0.803  0.805  0.803
+blend (chosen)      0.817  0.814  0.813  0.807  0.810  0.810  0.807
+```
+
+Brier by lead day:
+
+```
+                     day 1   day 2   day 3   day 4   day 5   day 6   day 7
+pattern rule        0.1692  0.1723  0.1723  0.1726  0.1707  0.1710  0.1726
+timing model alone  0.1714  0.1798  0.1831  0.1836  0.1815  0.1788  0.1788
+blend (chosen)      0.1689  0.1712  0.1709  0.1726  0.1707  0.1710  0.1726
+```
