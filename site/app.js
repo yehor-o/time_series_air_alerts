@@ -4,7 +4,17 @@
 
 const RAMP = ["#0d366b", "#104281", "#184f95", "#1c5cab", "#256abf", "#2a78d6", "#3987e5",
   "#5598e7", "#6da7ec", "#86b6ef", "#9ec5f4", "#b7d3f6", "#cde2fb"]; // sequential blue, low -> high
-const COL = { red: "#d03b3b", yellow: "#f2c230", unknown: "#8394ad", nodata: "#3a3f47", permanent: "#4b2630" };
+// design theme: ?theme=<name> (remembered), else the default; colours below follow the CSS variables of the theme
+(() => {
+  const q = new URLSearchParams(location.search).get("theme");
+  let th = q;
+  try { if (q) localStorage.setItem("theme", q); else th = localStorage.getItem("theme"); } catch (e) { /* storage blocked */ }
+  th = th || "noir";  // default design: Editorial Dark
+  if (th !== "classic") document.documentElement.dataset.theme = th;
+})();
+const cv = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const V = { bg: cv("--bg"), surface: cv("--surface"), line: cv("--line"), text: cv("--text-primary"), ink: cv("--text-secondary"), muted: cv("--text-muted") };
+const COL = { red: "#d03b3b", yellow: "#f2c230", unknown: V.muted, nodata: cv("--nodata"), permanent: cv("--permanent") };
 const KYIV = "Europe/Kyiv";
 // language: ?lang=uk|en in the URL, else the remembered choice, else English. T(en, uk) picks the text.
 const LANG = (() => {
@@ -52,7 +62,7 @@ async function load() {
     `Прогноз зроблено ${fDayTime.format(new Date(S.D.meta.forecast_time_utc))} (за Києвом) · дані до ${fDayTime.format(new Date(S.D.meta.data_until_utc))}`);
   if (S.D.meta.week_time_utc && S.D.meta.week_time_utc !== S.D.meta.forecast_time_utc)
     $("#asof").textContent += T(` · week view from ${fHour.format(new Date(S.D.meta.week_time_utc))}`, ` · тижневий прогноз від ${fHour.format(new Date(S.D.meta.week_time_utc))}`);
-  initTabs(); initMap(); initControls(); renderLegend("#legend"); initReplay(); renderQuality(); initCheck();
+  initTabs(); initMap(); initControls(); renderLegend("#legend"); renderTopRisk(); initReplay(); renderQuality(); initCheck();
 }
 
 // ---------- static texts (index.html) in Ukrainian; the About page has its own Ukrainian template ----------
@@ -120,7 +130,7 @@ function styleFor(props, value, selected) {
   if (props.status !== "forecast") return { fillColor: COL.nodata, fillOpacity: 1, color: "#555b66", weight: 0.6 };
   const fill = rampColor(value);
   const oblastView = S.level === "oblast";
-  return { fillColor: fill, fillOpacity: 1, color: selected ? "#ffffff" : (oblastView ? fill : "#0e1726"),
+  return { fillColor: fill, fillOpacity: 1, color: selected ? V.text : (oblastView ? fill : V.bg),
     weight: selected ? 2.2 : (oblastView ? 0.8 : 0.6) };
 }
 function initMap() {
@@ -135,6 +145,15 @@ function initMap() {
     },
   }).addTo(S.map);
   S.map.fitBounds(S.layer.getBounds(), { paddingTopLeft: [0, 60] });
+}
+function renderTopRisk() {
+  let box = $("#toprisk");
+  if (!box) { box = el("div", { id: "toprisk", className: "toprisk" }); $("#page-map .mapwrap").append(box); }
+  const lv = S.level, n = S.D.now[lv];
+  const top = Object.keys(n).sort((a, b) => n[b].p3 - n[a].p3).slice(0, 5);
+  box.innerHTML = `<div class="tt">${T(`Highest chance, next 3 h (${lv === "raion" ? "districts" : "oblasts"})`, `Найвища ймовірність, 3 год (${lv === "raion" ? "райони" : "області"})`)}</div>` +
+    top.map((id) => { const [a, b2] = unitName(id).split(/, (.+)/); return `<button data-id="${id}"><span>${a}${b2 ? `<small>${b2}</small>` : ""}</span><b>${pct(n[id].p3)}</b></button>`; }).join("");
+  box.querySelectorAll("button").forEach((b) => (b.onclick = () => select(b.dataset.id)));
 }
 function restyle() {
   S.layer.eachLayer((l) => {
@@ -165,7 +184,7 @@ function renderLegend(sel, title) {
 function initControls() {
   document.querySelectorAll("[data-level]").forEach((b) => b.onclick = () => {
     document.querySelectorAll("[data-level]").forEach((x) => x.classList.toggle("on", x === b));
-    S.level = b.dataset.level; S.selected = null; restyle(); renderPanel();
+    S.level = b.dataset.level; S.selected = null; restyle(); renderPanel(); renderTopRisk();
   });
   document.querySelectorAll("[data-h]").forEach((b) => b.onclick = () => {
     document.querySelectorAll("[data-h]").forEach((x) => x.classList.toggle("on", x === b));
@@ -202,11 +221,13 @@ function renderPanel() {
   const id = S.selected, lv = S.level, n = S.D.now[lv][id];
   const made = fDayTime.format(new Date(S.D.meta.forecast_time_utc));
   P.innerHTML = `<h2>${unitName(id)}</h2><div class="muted">${T(`${lv === "raion" ? "District" : "Oblast"} forecast, made ${made} Kyiv time`, `Прогноз для ${lv === "raion" ? "району" : "області"}, зроблено ${made} за Києвом`)}</div>
-    <div class="tiles">
-      <div class="tile"><div class="v">${pct(n.p1)}</div><div class="k">${T("new alert within 1 hour", "нова тривога протягом 1 години")}</div></div>
-      <div class="tile"><div class="v">${pct(n.p3)}</div><div class="k">${T("new alert within 3 hours", "нова тривога протягом 3 годин")}</div></div>
-      <div class="tile"><div class="v">${n.dur[0]}–${n.dur[1]} ${T("min", "хв")}</div><div class="k">${T("typical duration if one starts", "типова тривалість, якщо почнеться")}</div></div>
-      <div class="tile"><div class="v">${pct(n.red)}</div><div class="k">${T(`chance it is <span class="chip red">red</span> rather than <span class="chip yellow">yellow</span>`, `ймовірність, що вона <span class="chip red">червона</span>, а не <span class="chip yellow">жовта</span>`)}</div></div>
+    <div class="hero"><div class="hero-v">${pct(n.p3)}</div>
+      <div class="hero-k">${T("chance of a new alert in the next 3 hours", "ймовірність нової тривоги протягом наступних 3 годин")}</div>
+      <div class="hero-bar"><span style="width:${Math.round(n.p3 * 100)}%"></span></div></div>
+    <div class="tiles three">
+      <div class="tile"><div class="v">${pct(n.p1)}</div><div class="k">${T("within 1 hour", "протягом 1 години")}</div></div>
+      <div class="tile"><div class="v">${n.dur[0]}–${n.dur[1]} ${T("min", "хв")}</div><div class="k">${T("typical duration", "типова тривалість")}</div></div>
+      <div class="tile"><div class="v">${pct(n.red)}</div><div class="k">${T(`chance it is <span class="chip red">red</span>`, `шанс, що <span class="chip red">червона</span>`)}</div></div>
     </div>
     <h3>${T("Next 24 hours (Kyiv time)", "Наступні 24 години (за Києвом)")}</h3><div class="cells" id="next24"></div>
     <div class="muted" style="margin-top:6px">${T(`About <b>${n.cnt[0]}–${n.cnt[1]}</b> alerts and <b>${n.hrs[0]}–${n.hrs[1]} h</b> under alert expected.`, `Очікується приблизно <b>${n.cnt[0]}–${n.cnt[1]}</b> тривог і <b>${n.hrs[0]}–${n.hrs[1]} год</b> під тривогою.`)}</div>
@@ -248,7 +269,7 @@ function drawHeat(host, starts, wk) {
 function drawWeekStrip(host, starts, wk) {
   const W = 400, H = 70, base = 52, n = starts.length, bw = W / n;
   const svg = svgEl("svg", { width: W, height: H });
-  svg.append(svgEl("line", { x1: 0, x2: W, y1: base, y2: base, stroke: "#2b3d5c" }));
+  svg.append(svgEl("line", { x1: 0, x2: W, y1: base, y2: base, stroke: V.line }));
   starts.forEach((s, i) => {
     const h = Math.max(1, wk[i] * 44);
     const r = svgEl("rect", { x: i * bw + 0.5, y: base - h, width: bw - 1, height: h, rx: 1.5, fill: rampColor(Math.max(wk[i], 0.35)) });
@@ -275,9 +296,9 @@ function drawHistory(host, H, u) {
   const pts = u.pred.map((p, h) => `${(h + 0.5) / hours * W},${base - (p / 100) * (base - top)}`).join(" ");
   svg.append(svgEl("polygon", { points: `0,${base} ${pts} ${W},${base}`, fill: "#3987e5", "fill-opacity": 0.25 }));
   svg.append(svgEl("polyline", { points: pts, fill: "none", stroke: "#5598e7", "stroke-width": 2 }));
-  svg.append(svgEl("line", { x1: 0, x2: W, y1: base, y2: base, stroke: "#2b3d5c" }));
+  svg.append(svgEl("line", { x1: 0, x2: W, y1: base, y2: base, stroke: V.line }));
   for (let d = 0; d <= hours; d += 24) {
-    svg.append(svgEl("line", { x1: x(d * 60), x2: x(d * 60), y1: 12, y2: base, stroke: "#2b3d5c", "stroke-dasharray": "2,3" }));
+    svg.append(svgEl("line", { x1: x(d * 60), x2: x(d * 60), y1: 12, y2: base, stroke: V.line, "stroke-dasharray": "2,3" }));
     if (d < hours) { const t = svgEl("text", { x: x(d * 60) + 2, y: 106 }); t.textContent = fShort.format(new Date(t0 + d * 3600e3)); svg.append(t); }
   }
   const hit = svgEl("rect", { x: 0, y: 50, width: W, height: 44, fill: "transparent" });
@@ -295,7 +316,7 @@ function drawHistory(host, H, u) {
 function initReplay() {
   const R = S.D.replay;
   S.rmap = L.map("rmap", { attributionControl: false, zoomSnap: 0.25, minZoom: 5, maxZoom: 9 });
-  S.rlayer = L.geoJSON(S.geo, { style: () => ({ fillColor: COL.nodata, fillOpacity: 1, color: "#0e1726", weight: 0.6 }) }).addTo(S.rmap);
+  S.rlayer = L.geoJSON(S.geo, { style: () => ({ fillColor: COL.nodata, fillOpacity: 1, color: V.bg, weight: 0.6 }) }).addTo(S.rmap);
   S.rmap.fitBounds(S.rlayer.getBounds());
   renderLegend("#rlegend", T("Predicted chance of a new alert within 3 h", "Прогнозована ймовірність нової тривоги протягом 3 год"));
   const sl = $("#rslider"); sl.max = R.hours - 1;
@@ -306,7 +327,7 @@ function initReplay() {
       const p = l.feature.properties;
       if (p.status !== "forecast") { l.setStyle({ fillColor: p.status === "permanent" ? COL.permanent : COL.nodata }); return; }
       const u = R.raion[p.id], pr = u.p[k] / 100, y = u.y[k];
-      l.setStyle({ fillColor: rampColor(pr), color: y ? "#ffffff" : "#0e1726", weight: y ? 1.6 : 0.5 });
+      l.setStyle({ fillColor: rampColor(pr), color: y ? V.text : V.bg, weight: y ? 1.6 : 0.5 });
       if (y) { l.bringToFront(); starts++; if (pr >= 0.5) hits++; }
       if (y != null) { brier += (pr - y) ** 2; n++; }  // null = outcome unknown (data hole / end of data)
     });
@@ -327,7 +348,7 @@ function initReplay() {
 }
 
 // ---------- quality: how good is it? (test results + model comparison) ----------
-const CH = { chosen: "#3987e5", other: "#6b7a93", s2: "#d95926", s3: "#199e70", grid: "#2b3d5c", ink: "#b6c2d6", muted: "#8394ad" };
+const CH = { chosen: "#3987e5", other: cv("--bar-other") || "#6b7a93", s2: "#d95926", s3: "#199e70", grid: V.line, ink: V.ink, muted: V.muted };
 const f3 = (v) => (v == null ? "–" : (+v).toFixed(3));
 const f2 = (v) => (v == null ? "–" : (+v).toFixed(2));
 
@@ -356,7 +377,7 @@ function hbars(host, title, items, { fmt = f3, min = 0, max = 1, ref = null, not
   });
   svg.append(svgEl("line", { x1: x0, x2: x0, y1: top, y2: H - 18, stroke: CH.muted }));
   if (ref) {
-    svg.append(svgEl("line", { x1: sx(ref.v), x2: sx(ref.v), y1: top, y2: H - 18, stroke: "#eef2f8", "stroke-width": 1.5, "stroke-dasharray": "5,3" }));
+    svg.append(svgEl("line", { x1: sx(ref.v), x2: sx(ref.v), y1: top, y2: H - 18, stroke: V.text, "stroke-width": 1.5, "stroke-dasharray": "5,3" }));
     const t = svgEl("text", { x: sx(ref.v), y: top - 6, "text-anchor": "middle" }); t.textContent = ref.label; svg.append(t);
   }
   box.append(svg);
@@ -378,7 +399,7 @@ function lchart(host, title, xs, series, { fmt = f3, min, max, note = "" } = {})
   xs.forEach((x, i) => { const tx = svgEl("text", { x: sx(i) - 14, y: H - 6 }); tx.textContent = x; svg.append(tx); });
   series.forEach((s) => {
     svg.append(svgEl("polyline", { points: s.vals.map((v, i) => `${sx(i)},${sy(v)}`).join(" "), fill: "none", stroke: s.color, "stroke-width": 2 }));
-    s.vals.forEach((v, i) => svg.append(svgEl("circle", { cx: sx(i), cy: sy(v), r: 4, fill: s.color, stroke: "#0e1726", "stroke-width": 2 })));
+    s.vals.forEach((v, i) => svg.append(svgEl("circle", { cx: sx(i), cy: sy(v), r: 4, fill: s.color, stroke: V.surface, "stroke-width": 2 })));
   });
   // end labels, nudged apart so they never overlap
   const ends = series.map((s) => ({ s, y: sy(s.vals[s.vals.length - 1]) })).sort((a, b2) => a.y - b2.y);
@@ -584,15 +605,15 @@ function drawCalibration(host, cal) {
   const W = 360, H = 300, m = 34, sx = (v) => m + v * (W - m - 8), sy = (v) => H - m - v * (H - m - 8);
   const svg = svgEl("svg", { width: W, height: H });
   for (let v = 0; v <= 1.001; v += 0.25) {
-    svg.append(svgEl("line", { x1: sx(0), x2: sx(1), y1: sy(v), y2: sy(v), stroke: "#2b3d5c" }));
+    svg.append(svgEl("line", { x1: sx(0), x2: sx(1), y1: sy(v), y2: sy(v), stroke: V.line }));
     const t = svgEl("text", { x: 2, y: sy(v) + 3 }); t.textContent = `${v * 100}%`; svg.append(t);
     const t2 = svgEl("text", { x: sx(v) - 8, y: H - m + 14 }); t2.textContent = `${v * 100}%`; svg.append(t2);
   }
-  svg.append(svgEl("line", { x1: sx(0), y1: sy(0), x2: sx(1), y2: sy(1), stroke: "#8394ad", "stroke-dasharray": "4,4" }));
+  svg.append(svgEl("line", { x1: sx(0), y1: sy(0), x2: sx(1), y2: sy(1), stroke: V.muted, "stroke-dasharray": "4,4" }));
   const pts = cal.map((c) => `${sx(c.predicted)},${sy(c.observed)}`).join(" ");
   svg.append(svgEl("polyline", { points: pts, fill: "none", stroke: "#3987e5", "stroke-width": 2 }));
   cal.forEach((c) => {
-    const d = svgEl("circle", { cx: sx(c.predicted), cy: sy(c.observed), r: 4.5, fill: "#3987e5", stroke: "#152238", "stroke-width": 2 });
+    const d = svgEl("circle", { cx: sx(c.predicted), cy: sy(c.observed), r: 4.5, fill: "#3987e5", stroke: V.surface, "stroke-width": 2 });
     d.onmousemove = (e) => showTip(e, T(`forecast ${c.bin}: alerts started in <b>${pct(c.observed)}</b> of ${c.rows.toLocaleString()} cases`, `прогноз ${c.bin}: тривога почалася в <b>${pct(c.observed)}</b> з ${c.rows.toLocaleString()} випадків`));
     d.onmouseleave = () => (tip.hidden = true);
     svg.append(d);
@@ -657,7 +678,7 @@ function checkCard(host, sn, lv, id) {
   box.append(cells);
   // 24 h timeline of the actual alerts
   const W = 400, svg = svgEl("svg", { width: W, height: 34 }), x = (m) => (m / 1440) * W;
-  svg.append(svgEl("rect", { x: 0, y: 6, width: W, height: 16, rx: 3, fill: "#152238", stroke: "#2b3d5c" }));
+  svg.append(svgEl("rect", { x: 0, y: 6, width: W, height: 16, rx: 3, fill: V.surface, stroke: V.line }));
   u.alerts.forEach(([s, e, lvl]) => {
     const r = svgEl("rect", { x: x(s), y: 6, width: Math.max(1.5, x(e) - x(s)), height: 16, rx: 2, fill: COL[lvl] || COL.unknown });
     r.onmousemove = (ev) => showTip(ev, `${fDayTime.format(new Date(t0 + s * 6e4))} – ${fHour.format(new Date(t0 + e * 6e4))}${lvl === "red" || lvl === "yellow" ? `<br><span class="chip ${lvl}">${lvlName(lvl)}</span>` : ""}`);
