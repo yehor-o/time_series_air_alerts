@@ -335,3 +335,26 @@ Options:
 - (a) Keep them out of the air-raid targets (current).
 - (b) Add them as a separate small target "artillery warning starts in hromada X", for the 2 active communities.
 - (c) Count them as alerts for their raion.
+
+---
+# Accepted 2026-10-12 (afternoon)
+
+## D40. History used for training — Accepted (user), from reports/training_window.md
+- **Oblast models:** full history (from 2022-04) with **recency weights**, half-life 12 months: a row from d days before the training cut-off gets weight 0.5^(d / 365).
+- **Raion models:** the **last 12 months** only. Older raion rows are copies of oblast-wide alerts (disaggregation) and teach a pattern that no longer exists.
+
+## D41. Presentation of the weak targets — Accepted (user)
+- Duration: a range "usually X–Y min" = predicted 25th–75th percentile (LightGBM quantile models).
+- Duration bands are not shown.
+- 24h count and hours under alert: shown as ranges.
+
+## D42. Timing model (plan C) — Accepted (user)
+One LightGBM predicts P(new alert starts) for each 3-hour **Kyiv-time** block of the next 7 days (56 blocks). Blocks 1–8 = "next 24h: approximately when"; all 56 = the week-ahead heatmap and a week-ahead strip.
+
+## D43. Website — Accepted (user)
+- Title: **"Time-Series Air Alert Forecast, Ukraine (demo)"**.
+- **Desktop only** (no phone layout).
+- **Leaflet 1.9.4 from cdnjs** approved as the map library. No external map tiles.
+- All times shown in **Kyiv time**.
+- Click panel: history strip (actual alerts + predicted probability on the same timeline) **and a separate week-ahead strip**.
+- Pages: Map, Replay (test weeks), How good is it? (incl. with vs without Telegram), About.
