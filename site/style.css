@@ -238,3 +238,12 @@ html[data-theme="noir"] .hover, html[data-theme="noir"] .strip-tip { background:
 .toprisk { width: 300px; }
 .toprisk small { display: block; color: var(--text-muted); font-size: 11px; }
 .toprisk button { align-items: center; }
+.toprisk .tt { display: flex; justify-content: space-between; align-items: flex-end; gap: 8px; }
+.toprisk .cols { display: flex; gap: 0; flex: none; }
+.toprisk .cols i, .toprisk .cols b { width: 46px; text-align: right; font-style: normal; }
+.toprisk button span:first-child { font-size: 14px; }
+.now-on { display: inline-block; background: #d03b3b; color: #fff; font-size: 11px; font-weight: 600; padding: 2px 7px; border-radius: 3px; }
+.now-on.big { display: block; font-size: 12.5px; padding: 6px 9px; margin-top: 10px; font-weight: 500; }
+.ckm.on { background: transparent; color: #ff8a80; border: 1px solid #d03b3b; }
+.cktl { display: block; margin-top: 2px; }
+.ckm { white-space: nowrap; }

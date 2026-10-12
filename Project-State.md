@@ -27,7 +27,8 @@ _Last updated: 2026-10-12, ~17:30 Kyiv (session 2)._ Deadline: **today 23:59 Kyi
 - **Forecast check page** done: every published forecast archived in `site/data/archive/`; the 11 Oct 12:00 forecast checked against the next 24 h: district blocks with an alert got 53% on average vs 23% for quiet ones (AUC 0.81; oblasts 0.86); count inside range in 67% of districts, hours in 51%.
 - **Ukrainian version** done: EN | UA switch in the header (`?lang=uk`), every text paired in `site/app.js` via `T(en, uk)`, Ukrainian About page in `index.html` (`#about-uk`). The user should review the Ukrainian wording.
 - **Live system (D51/D52)** built: `scripts/fetch_live.py`, `predict_now.py --train/--predict`, `models/` (trained on data to 12 Oct 12:00 Kyiv), workflows `live.yml` (hourly, commits only `site/data/` to main) and `retrain.yml` (1st/15th, PR).
-- **NEXT:** verify the first live run with the real API; live hourly forecasts via the alerts.in.ua API + GitHub Actions (token in GitHub secret `ALERTS_IN_UA_TOKEN`).
+- **First live run (2026-10-12 19:20 UTC):** API fetch OK (24 regions, 12 min), forecast moment 19:00 UTC, total 14.5 min; publish failed (pull refused because of other rewritten files) and was wrongly reported as success: fixed in `live.yml` (PR #10). Second run started after the fix.
+- **Design:** Editorial Dark (dark version of the editorial variant B) is the default since PR #10: serif headings, tab bar, headline 3h number in the panel, "Highest chance, next 3 h" card. `?theme=classic|glass|light|civic` still work. via the alerts.in.ua API + GitHub Actions (token in GitHub secret `ALERTS_IN_UA_TOKEN`).
 
 ## Data snapshots (all downloads complete)
 - **In git (D15):** `data/telegram/*.jsonl.gz` and `data/labels/official_labels.parquet`. **Complete** downloads:

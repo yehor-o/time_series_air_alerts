@@ -46,8 +46,8 @@ def main():
                   "models_trained_utc": now.get("models_trained_utc"),
                   "units": {"raion": {u["id"]: {"name": u["name"], "oblast": u["oblast"], "oblast_id": u["oblast_id"]} for u in units},
                             "oblast": {o: {"name": ob_name[o]} for o in oblasts}}})
-    keep = ("p1", "p3", "red", "dur", "cnt", "hrs", "next24")
-    dump("now", {lv: {u: {k: v[k] for k in keep} for u, v in now[lv].items()} for lv in ("raion", "oblast")})
+    keep = ("p1", "p3", "red", "dur", "cnt", "hrs", "next24", "active")
+    dump("now", {lv: {u: {k: v[k] for k in keep if k in v} for u, v in now[lv].items()} for lv in ("raion", "oblast")})
     dump("week", {"block_starts_utc": now["block_starts_utc"],
                   **{lv: {u: v["week"] for u, v in now[lv].items()} for lv in ("raion", "oblast")}})
 

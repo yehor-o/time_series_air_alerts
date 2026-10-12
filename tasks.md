@@ -37,4 +37,5 @@ Deadline: **Mon 2026-10-12, 23:59 Kyiv**. Done items from earlier phases are sum
 15. [x] Data refresh (D50): live forecast 12 Oct 12:00 Kyiv
 16. [x] Forecast check page: archived forecasts (`site/data/archive/`) vs actual alerts (`scripts/forecast_check.py`)
 17. [x] Ukrainian version: EN/UA switch (`?lang=uk`, remembered), all pages translated, Ukrainian place names and dates
-18. [ ] Live hourly forecasts (D51, D52): code done (fetch_live, --train/--predict, models/, workflows); first workflow run to verify with the real API
+18. [~] Live hourly forecasts (D51, D52): API verified in the first run; publish fix merged (PR #10); confirm the second run publishes
+19. [x] New design: Editorial Dark (PR #10)
