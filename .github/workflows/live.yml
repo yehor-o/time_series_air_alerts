@@ -1,0 +1,51 @@
+# Hourly live forecast (D52): fresh alerts from the alerts.in.ua API -> forecast with the saved models -> site data.
+# Only site/data/ is committed, straight to main (approved by the user); Netlify then redeploys the site.
+# A failed run commits nothing, so the site keeps the previous forecast.
+name: live-forecast
+on:
+  schedule:
+    - cron: "7 * * * *"     # every hour at :07 UTC
+  workflow_dispatch: {}
+concurrency:
+  group: live-forecast
+  cancel-in-progress: false
+permissions:
+  contents: write
+jobs:
+  forecast:
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    env:
+      PYTHONPATH: .:scripts
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - name: Restore committed snapshots and download the latest alert data
+        run: |
+          bash scripts/restore_data.sh
+          python scripts/download_data.py
+      - name: Fetch the last month from the alerts.in.ua API (2 requests/min, ~13 min)
+        env:
+          ALERTS_IN_UA_TOKEN: ${{ secrets.ALERTS_IN_UA_TOKEN }}
+        run: python scripts/fetch_live.py
+      - name: Build alert tables and recent hourly inputs
+        run: |
+          python scripts/build_alert_table.py
+          python scripts/build_panel.py --start "$(date -u -d '50 days ago' +%F)"
+      - name: Forecast with the saved models, export, check old forecasts
+        run: |
+          python scripts/predict_now.py --predict
+          python scripts/export_site.py
+          python scripts/forecast_check.py
+      - name: Commit site/data to main
+        run: |
+          git config user.name "live-forecast[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add site/data
+          if git diff --cached --quiet; then echo "no changes"; exit 0; fi
+          git commit -m "Live forecast $(date -u +%Y-%m-%dT%H:%MZ)"
+          for i in 1 2 3; do git pull --rebase origin main && git push origin HEAD:main && break; sleep 5; done

@@ -45,6 +45,14 @@ The 1 h / 3 h probabilities are well calibrated: when the model says 45%, an ale
 Plain-English explanation of the whole method: [`docs/how_it_works.md`](docs/how_it_works.md).
 Every design decision, with the alternatives considered: [`decisions.md`](decisions.md).
 
+## Live forecasts
+
+The site is updated **every hour** by a GitHub Actions workflow (`.github/workflows/live.yml`): it reads the latest
+alerts from the [alerts.in.ua](https://alerts.in.ua) API, rebuilds the inputs and forecasts with the saved models in
+`models/`. Only `site/data/` is committed (to `main`), and Netlify redeploys the site. The models are retrained on the
+1st and 15th of each month (`.github/workflows/retrain.yml`), proposed as a pull request. The API token lives only in
+the repository secret `ALERTS_IN_UA_TOKEN`.
+
 ## Repository layout
 
 | Path | Contents |
@@ -78,6 +86,11 @@ PYTHONPATH=.:scripts python scripts/final_test.py              # the final test 
 PYTHONPATH=.:scripts python scripts/predict_now.py             # live forecast -> reports/now_predictions.json (~9 min)
 PYTHONPATH=. python scripts/export_site.py                     # -> site/data/*.json
 PYTHONPATH=. python scripts/forecast_check.py                  # archive the forecast + check old ones -> site/data/check.json
+
+# live mode (what the hourly workflow runs; needs ALERTS_IN_UA_TOKEN):
+python scripts/fetch_live.py                                   # latest alerts from the API into the archive file
+PYTHONPATH=.:scripts python scripts/predict_now.py --train     # retrain + save models/ (twice a month)
+PYTHONPATH=.:scripts python scripts/predict_now.py --predict   # forecast the latest hour with the saved models (~11 s)
 cd site && python3 -m http.server 8765                         # open http://localhost:8765
 ```
 

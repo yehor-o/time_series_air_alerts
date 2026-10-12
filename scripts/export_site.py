@@ -31,6 +31,7 @@ def level_name(red):
 
 def main():
     now = json.loads((REP / "now_predictions.json").read_text())
+    PREV = {n: json.loads((OUT / f"{n}.json").read_text()) for n in ("meta", "now") if (OUT / f"{n}.json").exists()}
     M = json.loads((REP / "test_metrics.json").read_text())
     shapes = json.loads((OUT / "raions.geojson").read_text())["features"]
     units = [f["properties"] for f in shapes if f["properties"]["status"] == "forecast"]
@@ -41,7 +42,8 @@ def main():
     assert not missing, f"units without a forecast: {missing}"
 
     dump("meta", {"title": "Time-Series Air Alert Forecast, Ukraine (demo)", "forecast_time_utc": now["forecast_time_utc"],
-                  "data_until_utc": now["data_until_utc"],
+                  "data_until_utc": now["data_until_utc"], "week_time_utc": now.get("week_time_utc", now["forecast_time_utc"]),
+                  "models_trained_utc": now.get("models_trained_utc"),
                   "units": {"raion": {u["id"]: {"name": u["name"], "oblast": u["oblast"], "oblast_id": u["oblast_id"]} for u in units},
                             "oblast": {o: {"name": ob_name[o]} for o in oblasts}}})
     keep = ("p1", "p3", "red", "dur", "cnt", "hrs", "next24")
@@ -49,9 +51,34 @@ def main():
     dump("week", {"block_starts_utc": now["block_starts_utc"],
                   **{lv: {u: v["week"] for u, v in now[lv].items()} for lv in ("raion", "oblast")}})
 
-    # history: 168 h before the forecast moment
+    # history: 168 h before the forecast moment. Forecast values come from (1) predict_now's out-of-sample history model
+    # (default mode), else (2) the rolling log of the site's own hourly forecasts (p3_log.json, live runs), else (3) the
+    # previous history.json, so the strip only ever shows forecasts made before each hour.
     h0, hours = t - pd.Timedelta("168h"), 168
     hist = {"start_utc": h0.isoformat(), "hours": hours}
+    prev = json.loads((OUT / "history.json").read_text()) if (OUT / "history.json").exists() else {}
+    prev = {} if prev.get("sample", True) else prev
+    plog = json.loads((OUT / "p3_log.json").read_text()) if (OUT / "p3_log.json").exists() else {"raion": {}, "oblast": {}}
+    old = (PREV["meta"], PREV["now"]) if len(PREV) == 2 else None  # the previously published forecast joins the log too
+    for lv in ("raion", "oblast"):  # this forecast joins the log; keep 8 days
+        if old and not old[1].get("sample", True):
+            plog[lv].setdefault(pd.Timestamp(old[0]["forecast_time_utc"]).isoformat(), {u: v["p3"] for u, v in old[1][lv].items()})
+        plog[lv][t.isoformat()] = {u: v["p3"] for u, v in now[lv].items()}
+        plog[lv] = {k: v for k, v in plog[lv].items() if pd.Timestamp(k) >= t - pd.Timedelta("192h")}
+    hgrid = pd.date_range(h0, t - pd.Timedelta("1h"), freq="h")
+
+    def hour_preds(lv, u):
+        if f"history_pred_{lv}" in now:
+            return now[f"history_pred_{lv}"][u]
+        p0 = pd.Timestamp(prev["start_utc"]) if prev else None
+        vals = []
+        for g in hgrid:
+            v = plog[lv].get(g.isoformat(), {}).get(u)
+            if v is None and prev and u in prev.get(lv, {}):
+                k = int((g - p0) / pd.Timedelta("1h"))
+                v = prev[lv][u]["pred"][k] / 100 if 0 <= k < len(prev[lv][u]["pred"]) else None
+            vals.append(np.nan if v is None else v)
+        return vals
     replay = {"horizon_h": 3}
     for lv in ("raion", "oblast"):
         a = pd.read_parquet(P / f"alerts_{lv}.parquet")
@@ -59,14 +86,13 @@ def main():
         a = a[(a.start < t) & (a.end.isna() | (a.end > h0))]
         tp = pd.read_parquet(REP / f"test_predictions_{lv}.parquet")
         ids = [u["id"] for u in units] if lv == "raion" else oblasts
-        hpred = now[f"history_pred_{lv}"]  # out-of-sample: model trained before the 7-day window (predict_now.py)
         hist[lv] = {}
         for u in ids:
             g = a[a.unit == u]
             al = [[int(max(0, (s - h0) / pd.Timedelta("1min"))),
                    int(min(hours * 60, ((e if pd.notna(e) and e < t else t) - h0) / pd.Timedelta("1min"))), level_name(r)]
                   for s, e, r in zip(g.start, g.end, g.red)]
-            hist[lv][u] = {"alerts": al, "pred": [int(round(100 * x)) if pd.notna(x) else 0 for x in hpred[u]]}
+            hist[lv][u] = {"alerts": al, "pred": [int(round(100 * x)) if pd.notna(x) else 0 for x in hour_preds(lv, u)]}
         # replay: the test weeks, hour by hour
         grid = pd.date_range(tp.time.min(), tp.time.max(), freq="h")
         pp = tp.pivot(index="time", columns="unit", values="p_start_3h").reindex(grid)
@@ -77,6 +103,7 @@ def main():
         replay[lv] = {u: {"p": [int(round(100 * x)) for x in pp[u].loc[grid]],
                           "y": [None if pd.isna(x) else int(x) for x in yy[u].loc[grid]]} for u in ids}
     dump("history", hist)
+    (OUT / "p3_log.json").write_text(json.dumps(plog, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
     dump("replay", replay)
 
     # metrics

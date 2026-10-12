@@ -425,3 +425,15 @@ The final test (`reports/test_results.md`) showed two weak spots: the 24h alert 
 
 ## D50. Forecast moment and data refresh — Accepted (user, 2026-10-12)
 The site is first built on the pinned data: forecast moment 2026-10-11 09:00 UTC (12:00 Kyiv). If time allows before the deadline, a refresh with newer data (new pins recorded) updates only the live forecast; the reported test scores stay on the pinned data, with the test start fixed at 2026-09-13.
+
+## D51. Retrain twice a month — Accepted (user, 2026-10-12)
+- Models are retrained on the 1st and 15th of each month (`.github/workflows/retrain.yml`, also startable by hand) with the frozen settings; the new models arrive as a pull request (`models/`, ~12.5 MB gzipped LightGBM text files + `models/meta.json`).
+- Evidence: one model trained before 13 Sep kept its skill over the 4 test weeks (3h skill per week raion 0.33 / 0.39 / 0.28 / 0.34), so monthly decay is small; twice a month is a margin for fast tactic changes. The Forecast check page is the early-warning signal for retraining sooner.
+- Between retrains, fresh data still drives every forecast through the inputs (recent alerts, current activity, habits, red share).
+- Alternatives: retrain every run (~20 min per hourly run, no measurable gain), monthly (less margin).
+
+## D52. Hourly live forecast — Accepted (user, 2026-10-12)
+- `.github/workflows/live.yml` runs every hour at :07 UTC: alerts.in.ua API (`scripts/fetch_live.py`, token in the GitHub secret `ALERTS_IN_UA_TOKEN`) → alert tables → `predict_now.py --predict` (saved models, latest hour) → `export_site.py` → `forecast_check.py`.
+- **Only `site/data/` is committed by the workflow, straight to `main`** (the only exception to the "never push to main" rule, approved by the user); Netlify redeploys. A failed run commits nothing.
+- The week view is issued at 00:00 / 12:00 Kyiv (the timing model's training setup); the history strip uses a rolling log of the site's own hourly forecasts; the Forecast check archives the 00:00 / 12:00 forecasts.
+- Alternatives: every 3 hours (stale "next hour" forecasts), a separate `live` branch for Netlify (cleaner, but one more setting).

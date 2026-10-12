@@ -1,0 +1,47 @@
+# Retrain all models twice a month (D51) and propose them as a pull request (models are not site data, so they go
+# through review like any code change). Can also be started by hand from the Actions tab.
+name: retrain-models
+on:
+  schedule:
+    - cron: "17 3 1,15 * *"   # 1st and 15th of each month, 03:17 UTC
+  workflow_dispatch: {}
+permissions:
+  contents: write
+  pull-requests: write
+jobs:
+  retrain:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    env:
+      PYTHONPATH: .:scripts
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - name: Data
+        env:
+          ALERTS_IN_UA_TOKEN: ${{ secrets.ALERTS_IN_UA_TOKEN }}
+        run: |
+          bash scripts/restore_data.sh
+          python scripts/download_data.py
+          python scripts/fetch_live.py
+          python scripts/build_alert_table.py
+          python scripts/build_panel.py --start 2022-03-01
+      - name: Train and save the models
+        run: python scripts/predict_now.py --train
+      - name: Open a pull request with the new models
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          b="retrain/$(date -u +%Y-%m-%d)"
+          git config user.name "retrain-models[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout -b "$b"
+          git add models
+          git commit -m "Retrained models $(date -u +%F)"
+          git push origin "$b"
+          gh pr create --base main --head "$b" --title "Retrained models $(date -u +%F)" \
+            --body "Automatic retraining (D51). Check models/meta.json (training time, data versions, range coverage), then merge."
