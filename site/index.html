@@ -77,7 +77,7 @@
         They also estimate how long it would last, how many alerts and hours under alert to expect in the next 24 hours,
         whether an alert is likely to be <b>red</b> (missiles, ballistic, massed attacks) or <b>yellow</b> (drones),
         and in which 3-hour blocks (Kyiv time) of the next 7 days alerts are most likely.</p>
-      <p>This is <b>not a live service</b>: the map shows one forecast, made on <b>11 Oct 2026 at 12:00 Kyiv time</b> from the data available
+      <p>This is <b>not a live service</b>: the map shows one forecast, made on <b>12 Oct 2026 at 12:00 Kyiv time</b> from the data available
         then. The "Replay" page and the history strip show what the models forecast, hour by hour, during the four test weeks before that.</p>
       <h2>How it works</h2>
       <p>The training data is a table with one row per district per hour. Each row holds what was known at that hour and
@@ -110,8 +110,9 @@
           Both were tested as extra inputs; neither improved the forecasts on the validation weeks, so the map does not use them (see "How good is it?").</li>
         <li>District boundaries: OCHA administrative boundaries (via the Vadimkin repository). Map library: <a href="https://leafletjs.com">Leaflet</a>.</li>
       </ul>
-      <p>Data versions used (fixed for reproducibility): Vadimkin dataset commit <code>bf0c323c</code>, JustJimer archive commit <code>7abc556b</code>
-        (data up to 11 Oct 2026). Code, method and all decisions: <a href="https://github.com/yehor-o/time_series_air_alerts">github.com/yehor-o/time_series_air_alerts</a>.</p>
+      <p>Data versions (fixed for reproducibility): the test scores use Vadimkin dataset commit <code>bf0c323c</code> and JustJimer archive commit
+        <code>7abc556b</code> (data up to 11 Oct 2026); the forecast on the map uses the newer commits <code>d10c80fa</code> and <code>c5b3bd01</code>
+        (data up to 12 Oct 2026, 12:00 Kyiv). Code, method and all decisions: <a href="https://github.com/yehor-o/time_series_air_alerts">github.com/yehor-o/time_series_air_alerts</a>.</p>
       <h2>Disclaimer</h2>
       <p>This is a student demo. It is <b>not</b> an official warning system and must not be used for safety decisions.
         Always follow official air raid alerts.</p>
