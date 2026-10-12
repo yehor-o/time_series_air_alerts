@@ -28,6 +28,7 @@ The user owns this project and must understand and approve what happens.
    - `pypi.org`: package installs (approved for Python libraries)
    - `cdnjs.cloudflare.com`: Leaflet 1.9.4 for the website map (approved 2026-10-12)
    - `air-alert-forecast-ua.netlify.app`: our own deployed site, to check that it loads (approved 2026-10-12)
+   - `api.alerts.in.ua`: alerts.in.ua API for live forecasts; the token lives only in the GitHub secret `ALERTS_IN_UA_TOKEN` (approved 2026-10-12)
 
    Anything else (e.g. `alerts.in.ua`, news sites, other Telegram channels) needs approval first. Add each newly approved site to this list.
 
