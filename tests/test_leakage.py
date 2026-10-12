@@ -106,3 +106,25 @@ def test_war_monitor_features_no_lookahead():
         pd.testing.assert_frame_equal(n1[n1.index <= cut], n2[n2.index <= cut])
         sel = lambda r: r[r.index.get_level_values("time") <= cut]
         pd.testing.assert_frame_equal(sel(r1), sel(r2))
+
+
+def test_timing_rows_no_lookahead():
+    """Timing-model inputs at an issue time t must not change when everything after t is hidden."""
+    from src.alerts.timing import TIMING_EXTRA, issue_times, timing_rows
+    iv = synthetic_alerts()
+    units = sorted(iv.unit.unique())
+    parent = dict(zip(iv.unit, iv.oblast))
+    grid = pd.date_range("2026-01-01", "2026-02-09", freq="h", tz="UTC")
+    last = grid[-1] + pd.Timedelta("1h")
+    feats = ["active", "starts_24h", "hod_rate14"]
+    cut = pd.Timestamp("2026-01-25 22:00", tz="UTC")  # 00:00 Kyiv
+    iss = issue_times(cut, cut)
+
+    def rows(intervals):
+        p = build_panel(intervals, units, grid, last, parent=parent)
+        return timing_rows(p, feats, iss, last, parent_of=parent)
+
+    known = truncate(iv, cut)
+    known.attrs = iv.attrs
+    cols = feats + TIMING_EXTRA + ["parent_blk_rate14"]
+    pd.testing.assert_frame_equal(rows(iv)[cols], rows(known)[cols])
