@@ -404,7 +404,7 @@ Only the oblast 24h count improves slightly; every probability target is the sam
 Re-scraping takes hours (@air_alert_ua alone ~5 h). Proposal: commit `.jsonl.gz` copies of the scraped channels and `official_labels.parquet` (tens of MB) so a new session/container doesn't need to re-download.
 Done: `data/telegram/*.jsonl.gz` (all scraped channels, 8.3 MB; @kpszsu and @UkraineAlarmSignal are PARTIAL snapshots taken mid-download) and `data/labels/official_labels.parquet` (5 MB). Restore with `scripts/restore_data.sh`.
 
-## D47. LightGBM settings for the new-alert classifiers (1h, 3h) — Proposed (2026-10-12)
+## D47. LightGBM settings for the new-alert classifiers (1h, 3h) — Accepted (user, 2026-10-12)
 `reports/tuning.md`, `scripts/tune_lgbm.py`. 12 candidates (current + 11 drawn from a grid fixed in advance), 4 validation weeks, test untouched. Adoption rule fixed before running: better than the current settings in ≥ 3 of 4 weeks, ≥ 0.5% lower average Brier, not worse on 1h.
 
 | Level | Chosen settings | 3h Brier current → new | weeks better | 3h skill | 1h Brier current → new |

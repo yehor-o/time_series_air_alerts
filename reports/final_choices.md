@@ -1,4 +1,4 @@
-# Final choice table (for the user's sign-off before the final test run)
+# Final choice table — signed off by the user 2026-10-12 (frozen for the final test run)
 
 All numbers are **validation** results (weeks before 2026-09-13). The test period (13 Sep – 11 Oct 2026) has not been
 touched. Pinned data: Vadimkin `bf0c323c`, JustJimer `7abc556b`. Skill = how much smaller the error is than the simple rule
