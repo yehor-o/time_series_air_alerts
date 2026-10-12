@@ -176,7 +176,7 @@ def main(mode="full"):
 
         out[level] = {}
         for u, r in res.iterrows():
-            out[level][u] = {"p1": round(float(r.p1), 3), "p3": round(float(r.p3), 3),
+            out[level][u] = {"p1": round(float(r.p1), 3), "p3": round(float(r.p3), 3), "active": int(now.at[u, "active"] > 0),
                              "red": round(float(nat if pd.isna(red[u]) else red[u]), 3),
                              "dur": [int(max(1, round(min(r.dur_lo, r.dur_hi)))), int(max(1, round(max(r.dur_lo, r.dur_hi))))],
                              "cnt": [int(max(0, round(min(r.cnt_lo, r.cnt_hi)))), int(max(0, round(max(r.cnt_lo, r.cnt_hi))))],

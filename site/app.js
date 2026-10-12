@@ -146,13 +146,23 @@ function initMap() {
   }).addTo(S.map);
   S.map.fitBounds(S.layer.getBounds(), { paddingTopLeft: [0, 60] });
 }
+// Major cities: the district (or oblast) that contains each city; forecasts are per district.
+const CITIES = [
+  { en: "Kyiv", uk: "Київ", raion: "м. Київ|м. Київ", oblast: "м. Київ" },
+  { en: "Lviv", uk: "Львів", raion: "Львівська область|Львівський район", oblast: "Львівська область" },
+  { en: "Kharkiv", uk: "Харків", raion: "Харківська область|Харківський район", oblast: "Харківська область" },
+  { en: "Odesa", uk: "Одеса", raion: "Одеська область|Одеський район", oblast: "Одеська область" },
+];
 function renderTopRisk() {
   let box = $("#toprisk");
   if (!box) { box = el("div", { id: "toprisk", className: "toprisk" }); $("#page-map .mapwrap").append(box); }
   const lv = S.level, n = S.D.now[lv];
-  const top = Object.keys(n).sort((a, b) => n[b].p3 - n[a].p3).slice(0, 5);
-  box.innerHTML = `<div class="tt">${T(`Highest chance, next 3 h (${lv === "raion" ? "districts" : "oblasts"})`, `Найвища ймовірність, 3 год (${lv === "raion" ? "райони" : "області"})`)}</div>` +
-    top.map((id) => { const [a, b2] = unitName(id).split(/, (.+)/); return `<button data-id="${id}"><span>${a}${b2 ? `<small>${b2}</small>` : ""}</span><b>${pct(n[id].p3)}</b></button>`; }).join("");
+  box.innerHTML = `<div class="tt"><span>${T("Major cities: chance of a new alert", "Великі міста: ймовірність нової тривоги")}</span><span class="cols"><i>1 ${T("h", "год")}</i><i>3 ${T("h", "год")}</i></span></div>` +
+    CITIES.filter((c) => n[c[lv]]).map((c) => {
+      const id = c[lv], sub = id.startsWith("м. ") ? "" : `<small>${unitName(id, lv).split(", ")[0]}</small>`;
+      const vals = n[id].active ? `<span class="now-on">${T("under alert now", "зараз тривога")}</span>` : `<b>${pct(n[id].p1)}</b><b>${pct(n[id].p3)}</b>`;
+      return `<button data-id="${id}"><span>${T(c.en, c.uk)}${sub}</span><span class="cols">${vals}</span></button>`;
+    }).join("");
   box.querySelectorAll("button").forEach((b) => (b.onclick = () => select(b.dataset.id)));
 }
 function restyle() {
@@ -221,6 +231,7 @@ function renderPanel() {
   const id = S.selected, lv = S.level, n = S.D.now[lv][id];
   const made = fDayTime.format(new Date(S.D.meta.forecast_time_utc));
   P.innerHTML = `<h2>${unitName(id)}</h2><div class="muted">${T(`${lv === "raion" ? "District" : "Oblast"} forecast, made ${made} Kyiv time`, `Прогноз для ${lv === "raion" ? "району" : "області"}, зроблено ${made} за Києвом`)}</div>
+    ${n.active ? `<div class="now-on big">${T("Under alert right now: a new alert can only start after this one ends.", "Зараз триває тривога: нова може початися лише після її завершення.")}</div>` : ""}
     <div class="hero"><div class="hero-v">${pct(n.p3)}</div>
       <div class="hero-k">${T("chance of a new alert in the next 3 hours", "ймовірність нової тривоги протягом наступних 3 годин")}</div>
       <div class="hero-bar"><span style="width:${Math.round(n.p3 * 100)}%"></span></div></div>
