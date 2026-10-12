@@ -1,0 +1,120 @@
+{
+  "candidates": [
+    {
+      "num_leaves": 63,
+      "min_child_samples": 500,
+      "learning_rate": 0.05,
+      "n_estimators": 400,
+      "colsample_bytree": 0.8,
+      "reg_lambda": 0.0
+    },
+    {
+      "num_leaves": 31,
+      "min_child_samples": 200,
+      "learning_rate": 0.05,
+      "n_estimators": 400,
+      "colsample_bytree": 0.6,
+      "reg_lambda": 1.0
+    },
+    {
+      "num_leaves": 31,
+      "min_child_samples": 200,
+      "learning_rate": 0.05,
+      "n_estimators": 400,
+      "colsample_bytree": 0.8,
+      "reg_lambda": 0.0
+    },
+    {
+      "num_leaves": 31,
+      "min_child_samples": 200,
+      "learning_rate": 0.03,
+      "n_estimators": 700,
+      "colsample_bytree": 0.6,
+      "reg_lambda": 1.0
+    },
+    {
+      "num_leaves": 31,
+      "min_child_samples": 500,
+      "learning_rate": 0.03,
+      "n_estimators": 700,
+      "colsample_bytree": 0.6,
+      "reg_lambda": 0.0
+    },
+    {
+      "num_leaves": 31,
+      "min_child_samples": 1000,
+      "learning_rate": 0.05,
+      "n_estimators": 400,
+      "colsample_bytree": 0.6,
+      "reg_lambda": 1.0
+    },
+    {
+      "num_leaves": 31,
+      "min_child_samples": 1000,
+      "learning_rate": 0.03,
+      "n_estimators": 700,
+      "colsample_bytree": 0.6,
+      "reg_lambda": 0.0
+    },
+    {
+      "num_leaves": 63,
+      "min_child_samples": 500,
+      "learning_rate": 0.05,
+      "n_estimators": 400,
+      "colsample_bytree": 0.6,
+      "reg_lambda": 0.0
+    },
+    {
+      "num_leaves": 63,
+      "min_child_samples": 1000,
+      "learning_rate": 0.05,
+      "n_estimators": 400,
+      "colsample_bytree": 0.6,
+      "reg_lambda": 0.0
+    },
+    {
+      "num_leaves": 63,
+      "min_child_samples": 1000,
+      "learning_rate": 0.03,
+      "n_estimators": 700,
+      "colsample_bytree": 0.8,
+      "reg_lambda": 1.0
+    },
+    {
+      "num_leaves": 127,
+      "min_child_samples": 200,
+      "learning_rate": 0.03,
+      "n_estimators": 700,
+      "colsample_bytree": 0.6,
+      "reg_lambda": 0.0
+    },
+    {
+      "num_leaves": 127,
+      "min_child_samples": 500,
+      "learning_rate": 0.05,
+      "n_estimators": 400,
+      "colsample_bytree": 0.6,
+      "reg_lambda": 1.0
+    }
+  ],
+  "raion": {
+    "chosen": 4,
+    "params": {
+      "num_leaves": 31,
+      "min_child_samples": 500,
+      "learning_rate": 0.03,
+      "n_estimators": 700,
+      "colsample_bytree": 0.6,
+      "reg_lambda": 0.0
+    },
+    "passed_3h": [
+      2,
+      3,
+      4,
+      5,
+      6,
+      7
+    ],
+    "one_hour_check": true
+  }
+}
