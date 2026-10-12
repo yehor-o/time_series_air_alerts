@@ -395,4 +395,4 @@ One LightGBM predicts P(new alert starts) for each 3-hour **Kyiv-time** block of
 
 ## D15 (follow-up). Commit compressed Telegram data — Accepted (user, 2026-10-12)
 Re-scraping takes hours (@air_alert_ua alone ~5 h). Proposal: commit `.jsonl.gz` copies of the scraped channels and `official_labels.parquet` (tens of MB) so a new session/container doesn't need to re-download.
-Done: `data/telegram/*.jsonl.gz` (all scraped channels, 8.3 MB; @kpszsu and @UkraineAlarmSignal are PARTIAL snapshots taken mid-download) and `data/labels/official_labels.parquet` (5 MB). Restore with `scripts/restore_data.sh`.
+Done: `data/telegram/*.jsonl.gz` (all scraped channels; downloads complete) and `data/labels/official_labels.parquet` (5 MB). Restore with `scripts/restore_data.sh`.
