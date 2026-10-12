@@ -14,19 +14,22 @@ Deadline: **Mon 2026-10-12, 23:59 Kyiv**. Done items from earlier phases are sum
 - [x] `docs/how_it_works.md`
 
 ## Next (in order)
-1. [x] Telegram downloads @kpszsu (since 2025-09) and @UkraineAlarmSignal (since 2026-09) complete, in git
-2. [ ] User decisions: D45 timing hybrid, D15 data in git
-3. [ ] **LightGBM tuning**, time-boxed (~40 min, validation folds only), raion + oblast 3h
-4. [ ] (if time) @kpszsu features → re-run `scripts/compare_telegram.py` with @kpszsu instead of @war_monitor
+1. [x] Finish the Telegram downloads (@kpszsu, @UkraineAlarmSignal)
+2. [x] D45 decided: blend model/pattern (user, after `reports/timing_variants.md`); implemented in `src/alerts/timing.py`
+2b. [x] Committed Telegram snapshots refreshed with the complete @kpszsu and @UkraineAlarmSignal downloads
+3. [x] **LightGBM tuning** done: small gains, D47 Proposed (`reports/tuning.md`)
+4. [x] @kpszsu features: NOT used, worse on probability targets (D44, `reports/kpszsu_ablation.md`)
+
 5. [ ] (if time) @UkraineAlarmSignal cross-check of the archive (holes, Lviv/Volyn, yellow/red)
-6. [ ] Re-check the JustJimer repo for new data; if any → `download_data.py`, rebuild tables/panels
-7. [ ] **Final choice table** → user sign-off
-8. [ ] **Final test run** 13 Sep – 11 Oct (main models; red: train Sep 6–26, test Sep 27+), hourly predictions for the replay and the history strip
-9. [ ] Retrain on all data → "now" + week-ahead predictions
-10. [ ] `scripts/export_site.py` → `site/data/{meta,now,week,history,replay,metrics}.json` (same format as the sample)
-11. [ ] Site: real data, quality page numbers (incl. with/without Telegram), screenshots → user
+6. [x] Re-checked: both repos have newer commits; user chose to keep the pins
+7. [x] **Final choice table** signed off (D47 accepted)
+8. [x] **Final test run** done (`reports/test_results.md`, `test_metrics.json`, hourly predictions in `reports/test_predictions_*.parquet`)
+9. [x] Retrain on all data → "now" + week-ahead predictions (`scripts/predict_now.py` → `reports/now_predictions.json`)
+10. [x] `scripts/export_site.py` → real `site/data/*.json` (sample banner gone)
+11. [x] Site: real data + merged "How good is it?" page with model-comparison charts (screenshots in `reports/screens/`)
 12. [ ] Netlify deploy (with the user; `netlify.toml` publishes `site/`)
-13. [ ] README, final explanation, merge into main
+13. [x] README written (live-site link to add after Netlify); docs/how_it_works.md and About page updated with the test results
+14. [ ] Merge into main, then Netlify (option A, with the user; site name air-alert-forecast-ua), then add the URL to README/About
 
 ## Later / optional
 - Artillery as a separate small product for Nikopol / Marhanets (D39 option b)

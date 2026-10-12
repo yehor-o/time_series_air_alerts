@@ -27,12 +27,13 @@ The user owns this project and must understand and approve what happens.
    - `t.me`: the public web previews of `@war_monitor`, `@air_alert_ua`, `@kpszsu` and `@UkraineAlarmSignal` (the last two approved 2026-10-12)
    - `pypi.org`: package installs (approved for Python libraries)
    - `cdnjs.cloudflare.com`: Leaflet 1.9.4 for the website map (approved 2026-10-12)
+   - `air-alert-forecast-ua.netlify.app`: our own deployed site, to check that it loads (approved 2026-10-12)
 
    Anything else (e.g. `alerts.in.ua`, news sites, other Telegram channels) needs approval first. Add each newly approved site to this list.
 
 ## Git workflow (agreed)
 
-- Work always happens on a dedicated branch (for this session: `claude/quirky-maxwell-imel4t`). Commit and push there freely.
+- Work always happens on a dedicated branch (for this session: `claude/gifted-brahmagupta-15ca07`). Commit and push there freely.
 - When the user says **"merge in main"**: push, open a PR into `main`, merge it.
 - Never push directly to `main` otherwise.
 

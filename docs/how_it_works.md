@@ -46,13 +46,14 @@ LightGBM is a chain of small **decision trees**.
 - One tree is a flowchart of yes/no questions, e.g. "Is the district under alert now? → More than 3 new alerts in the oblast in the last 3 h? → Between 01:00 and 05:00?". Each end of the flowchart gives a probability learned from history.
 - The model builds hundreds of trees **one after another**, each correcting the mistakes of the ones before. The final forecast combines all of them.
 - **One model serves all districts.** It knows which oblast a row belongs to, so it can learn regional differences.
+- **Settings were tuned** on the validation weeks (D47): simpler trees (31 leaves), smaller learning steps with more trees (0.03 × 700), and each tree sees 60% of the inputs. This cut the 3-hour error by about 1%.
 
 Which model is used for what:
 - **New alert within 1h / 3h:** LightGBM classifier ("yes/no" with a probability).
 - **Duration:** three LightGBM *quantile* models, giving the 25th, 50th and 75th percentile. The 25th–75th pair becomes "usually X–Y min".
-- **Count and hours in the next 24 h:** LightGBM regressors, shown as ranges.
-- **Timing (7 days × 8 blocks):** one LightGBM classifier on rows of (forecast time, future block).
-- **Red vs yellow:** the best of: the simple rule "this district's red share in the last 7 days", a logistic regression and LightGBM. Chosen on validation; today the simple rule wins.
+- **Count and hours in the next 24 h:** LightGBM *percentile* models (25th and 75th), shown as ranges such as "about 4–8 alerts" (D49).
+- **Timing (7 days × 8 blocks):** one LightGBM classifier on rows of (forecast time, future block). The week-ahead number is a **blend** with the simple pattern rule: `w × model + (1 − w) × pattern`, where `w` falls in a straight line from 1 (right now) to 0 (3 days ahead). Near-term blocks use what is happening now; by day 3 the forecast is the district's typical habit. Chosen on validation (D45).
+- **Red vs yellow:** a simple rule, "this district's red share over the last 7 days". It beat logistic regression and LightGBM on validation, so the site uses the rule.
 
 ## 5. How much history the models learn from
 
@@ -95,4 +96,28 @@ Compare "last 12 months only": weight 1 for anything younger than a year, **0** 
 - **Calibration:** when we say 30%, does it happen about 30% of the time? Checked by grouping forecasts into bins.
 - **MAE (mean absolute error):** the average size of the miss, in minutes, alerts or hours.
 - **Coverage of a range:** how often the true value falls inside "usually X–Y". For a 25th–75th percentile range the ideal is 50%.
-- **Telegram rule:** the version with @war_monitor inputs is used on the map only if it wins on the validation weeks. Both versions are shown on the "How good is it?" page.
+- **Telegram rule:** a Telegram version is used on the map only if it wins on the validation weeks. Both @war_monitor (threat reports) and @kpszsu (Air Force) were tested; neither won, so the map uses no Telegram inputs. All versions are shown on the "How good is it?" page.
+
+## 8. Final test results (13 Sep – 11 Oct 2026, scored once)
+
+All choices were frozen and signed off before the test. The test was run once, and nothing was changed after seeing it (D48). Full tables: `reports/test_results.md`; charts: the site's "How good is it?" page.
+
+| What we predict | District | Oblast | Compared with |
+|---|---|---|---|
+| New alert within 1 h: AUC / skill | 0.822 / 0.148 | 0.825 / 0.164 | clock-hour rule: AUC 0.733 / 0.740 |
+| New alert within 3 h: AUC / skill | 0.836 / 0.339 | 0.854 / 0.402 | clock-hour rule: AUC 0.759 / 0.784 |
+| Duration range contains the true duration | 48% | 49% | ideal 50%; "last 10 alerts" rule 42–43% |
+| Hours under alert in the next 24 h: average miss | 1.87 h | 2.06 h | 7-day average 2.03 / 2.23 h (we win by 8%) |
+| Number of alerts in the next 24 h: average miss | 1.72 | 2.09 | 7-day average 1.66 / 1.93 (**we lose** by 4–8%) |
+| Week-ahead blocks: skill vs pattern rule | +0.003 | −0.035 (**we lose** on days 1–2) | pattern rule |
+| Red vs yellow (test from 27 Sep): AUC | 0.845 | — | previous alert's level 0.712 |
+
+What this means in plain words:
+- **The main forecast works.** It ranks risky hours well above chance and well above the simple rule, and its percentages can be taken literally (when it says 45%, an alert started in about 46% of cases).
+- **It was stable**: useful in every test week, a bit better by day than by night.
+- **Two weak spots**, kept and reported honestly: the 24-hour alert *count* is no better than "the daily average of the last 7 days", and for oblasts the week-ahead percentages for the next two days were less accurate than the simple pattern.
+- **Telegram did not help** at district level; at oblast level @war_monitor was slightly better on the test, but it had lost on the validation weeks, so it is not used.
+
+## 9. The forecast on the site
+
+The site shows one forecast, made at **11 Oct 2026, 12:00 Kyiv time**, from the pinned data (Vadimkin `bf0c323c`, JustJimer `7abc556b`). Every model was retrained on all data known at that moment, with the frozen settings (`scripts/predict_now.py`). The history strip and the replay show forecasts of the test-run models, which were trained before 13 Sep, so they are genuine forecasts made without knowing what happened next.

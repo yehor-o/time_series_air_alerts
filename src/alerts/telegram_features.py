@@ -53,7 +53,8 @@ def war_monitor_features(posts, grid, oblasts):
     active = ~summ.text.str.contains(r"Стратегічна авіація:\s*\n?\s*Не активна", case=False, regex=True)
     sp = summ.published.dt.tz_convert(None).values.astype("datetime64[ns]")
     idx = np.searchsorted(sp, g.values.astype("datetime64[ns]"), side="left") - 1  # strictly before t
-    nat["wm_strat_aviation"] = np.where(idx >= 0, active.values[np.maximum(idx, 0)].astype(float), np.nan)
+    nat["wm_strat_aviation"] = (np.where(idx >= 0, active.values[np.maximum(idx, 0)].astype(float), np.nan)
+                                if len(summ) else np.nan)  # channels without such summaries: unknown
     national = pd.DataFrame(nat, index=pd.DatetimeIndex(grid, name="time"))
 
     regs = []

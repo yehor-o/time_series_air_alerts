@@ -73,9 +73,12 @@
     <div class="docbody">
       <h2>What this is</h2>
       <p>A demo of time-series forecasting for air raid alerts in Ukraine, per district (raion) and per oblast.
-        Every hour the models answer: <b>how likely is a new alert to start here in the next hour / 3 hours?</b>
-        They also estimate how long it would last, whether it is likely to be <b>red</b> (missiles, ballistic, massed attacks)
-        or <b>yellow</b> (drones), and in which 3-hour blocks (Kyiv time) of the next 7 days alerts are most likely.</p>
+        The models answer: <b>how likely is a new alert to start here in the next hour / 3 hours?</b>
+        They also estimate how long it would last, how many alerts and hours under alert to expect in the next 24 hours,
+        whether an alert is likely to be <b>red</b> (missiles, ballistic, massed attacks) or <b>yellow</b> (drones),
+        and in which 3-hour blocks (Kyiv time) of the next 7 days alerts are most likely.</p>
+      <p>This is <b>not a live service</b>: the map shows one forecast, made on <b>11 Oct 2026 at 12:00 Kyiv time</b> from the data available
+        then. The "Replay" page and the history strip show what the models forecast, hour by hour, during the four test weeks before that.</p>
       <h2>How it works</h2>
       <p>The training data is a table with one row per district per hour. Each row holds what was known at that hour and
         what happened afterwards. A gradient-boosted decision-tree model (LightGBM) learns from millions of such rows
@@ -87,6 +90,13 @@
         <li><b>Its oblast and the whole country:</b> share of districts under alert now, recent alerts nearby and nationwide.</li>
         <li><b>Calendar:</b> hour and weekday in Kyiv time; which oblast it is.</li>
       </ul>
+      <p>The model's settings were tuned on validation weeks before the test. Durations and the 24-hour numbers are shown as ranges
+        (the model's 25th–75th percentile), because single numbers would suggest more precision than there is.</p>
+      <p><b>The week ahead</b> blends two forecasts: the model, which knows what is happening right now, and a simple "pattern rule"
+        (in how many of the last 14 days did an alert start in this 3-hour block?). The model's weight starts at 100% and fades to 0% by day 3,
+        because current conditions say little about next week.</p>
+      <p><b>Red or yellow</b> uses a simple rule: the district's share of red alerts over the last 7 days. It predicted the level better
+        than the machine-learning models, which had only a few weeks of data with levels to learn from (levels exist since 6 Sep 2026).</p>
       <h2>The no-leakage rule</h2>
       <p>A forecast made at time t uses only information published before t. An alert still running at t is known only as
         "started, still active"; its end is not used. Models are trained on the past and scored on later weeks they never saw.</p>
@@ -96,9 +106,12 @@
           (parsed from the @air_alert_ua Telegram channel; artillery and other non-air-raid warnings removed).</li>
         <li>Alerts since 2026-09-06 with yellow/red levels: <a href="https://github.com/JustJimer/ukraine-air-alert-stats">JustJimer/ukraine-air-alert-stats</a>
           (daily archive of the <a href="https://alerts.in.ua">alerts.in.ua</a> API).</li>
-        <li>Threat context: the public Telegram channel @war_monitor (tested as an extra input, see "How good is it?").</li>
-        <li>District boundaries: OCHA administrative boundaries (via the Vadimkin repository).</li>
+        <li>Threat context: the public Telegram channels @war_monitor and @kpszsu (Air Force), read via their public web previews.
+          Both were tested as extra inputs; neither improved the forecasts on the validation weeks, so the map does not use them (see "How good is it?").</li>
+        <li>District boundaries: OCHA administrative boundaries (via the Vadimkin repository). Map library: <a href="https://leafletjs.com">Leaflet</a>.</li>
       </ul>
+      <p>Data versions used (fixed for reproducibility): Vadimkin dataset commit <code>bf0c323c</code>, JustJimer archive commit <code>7abc556b</code>
+        (data up to 11 Oct 2026). Code, method and all decisions: <a href="https://github.com/yehor-o/time_series_air_alerts">github.com/yehor-o/time_series_air_alerts</a>.</p>
       <h2>Disclaimer</h2>
       <p>This is a student demo. It is <b>not</b> an official warning system and must not be used for safety decisions.
         Always follow official air raid alerts.</p>

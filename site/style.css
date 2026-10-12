@@ -81,3 +81,23 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
 .rbtns { display: flex; gap: 6px; margin: 8px 0 14px; }
 #rstats .tile { margin-bottom: 8px; }
 [hidden] { display: none !important; }
+
+/* quality page charts */
+.docbody.wide { max-width: 900px; }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 24px; margin: 6px 0 22px; }
+.chart { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; }
+.chart svg { display: block; overflow: visible; }
+.chart text { fill: var(--text-muted); font-size: 11px; }
+.chart text.strong { fill: var(--text-primary); font-weight: 600; }
+.ctitle { color: var(--text-primary); font-size: 13px; font-weight: 600; margin-bottom: 6px; }
+.cnote { color: var(--text-muted); font-size: 11px; margin-top: 4px; }
+.cap { font-size: 13px; }
+.legend-row { display: flex; gap: 14px; font-size: 12px; color: var(--text-secondary); margin-top: 4px; }
+.chip-b, .chip-g { padding: 0 6px; border-radius: 4px; color: #0b1424; font-weight: 600; }
+.chip-b { background: #3987e5; } .chip-g { background: #6b7a93; color: #eef2f8; }
+.lost { background: #4b2630; color: #f3b9b9; padding: 0 6px; border-radius: 4px; font-weight: 600; font-size: 12px; }
+.seg { display: inline-flex; gap: 4px; margin-bottom: 6px; }
+.seg button { background: var(--surface); color: var(--text-secondary); border: 1px solid var(--line); border-radius: 6px; padding: 4px 12px; cursor: pointer; }
+.seg button.on { background: var(--accent); color: #fff; border-color: var(--accent); }
+.chart text.inbar { fill: #0b1424; font-weight: 600; }
+#calib svg { overflow: visible; }

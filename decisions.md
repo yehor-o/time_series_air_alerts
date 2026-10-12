@@ -371,18 +371,25 @@ One LightGBM predicts P(new alert starts) for each 3-hour **Kyiv-time** block of
 
 @war_monitor makes every target slightly worse, so the map uses the plain models. Both are shown on "How good is it?".
 
-**Next candidate:** @kpszsu (Air Force, ~350 posts/day, 81% name an oblast, 21 oblasts; @war_monitor has 31/day and 14 oblasts). It is being downloaded since 2025-09 and should be tested with the same script once complete.
+**@kpszsu tested (2026-10-12, `reports/kpszsu_ablation.md`, same protocol): NOT used.**
 
-## D45. Timing model: model for days 1–2, pattern rule for days 3–7 — Proposed
-`reports/timing_validation.md`, 2 validation weeks. AUC by lead day:
-
-| Lead | Raion: pattern / model | Oblast: pattern / model |
+| Target | Raion without / with | Oblast without / with |
 |---|---|---|
-| day 1 | 0.759 / 0.803 (skill +0.08) | 0.769 / 0.804 (+0.10) |
-| day 2 | 0.765 / 0.782 (+0.03) | 0.778 / 0.792 (+0.04) |
-| day 3–7 | about equal; the model's Brier is worse (skill −0.02…−0.07) | same |
+| 1h skill | 0.186 / 0.187 | 0.214 / 0.190 |
+| 3h skill | 0.326 / 0.296 | 0.366 / 0.332 |
+| 24h count MAE | 1.48 / 1.49 | 1.64 / 1.62 |
+| 24h hours MAE | 1.91 / 1.93 | 2.02 / 2.03 |
 
-**Proposal:** the week-ahead view uses the LightGBM timing model for blocks in the first 48 h and the pattern rule ("share of the last 14 days with a new alert in this clock block") for days 3–7. That's honest and simple.
+Only the oblast 24h count improves slightly; every probability target is the same or worse. Caveat: @kpszsu exists only since 2025-08-31, so the oblast model (full history) sees it as "unknown" for most of its training rows.
+
+## D45. Timing model: blend of model and pattern rule — Accepted (user, 2026-10-12)
+`reports/timing_validation.md` (first look) and `reports/timing_variants.md` (7 variants), 2 validation weeks.
+- Model vs pattern by lead day (AUC): day 1 0.803 vs 0.759 (raion), 0.804 vs 0.769 (oblast); day 2 +0.02/+0.01; days 3–7 about equal, and the model's Brier is worse there.
+- Variants tried: pattern, full model, calendar-only model (no "alerts now" inputs; the user's idea), hybrid A (model < 48 h, then pattern), hybrid B (model < 48 h, then calendar-only), blend model/calendar-only, blend model/pattern.
+- The calendar-only model did NOT help (raion Brier 0.2085 vs 0.1787 for the pattern): without the current-state inputs it ranks no better than the pattern and is worse calibrated. Any variant using it as the far end was worse than the pattern.
+- **Decision:** week-ahead probability = `w × model + (1 − w) × pattern rule`, `w = clip(1 − lead_h / 72, 0, 1)` (fixed schedule, nothing fitted). Overall Brier skill vs pattern: raion +0.016, oblast +0.024; hybrid A was +0.014 / +0.023 (practically a tie, but the blend has no jump at 48 h).
+- Code: `src/alerts/timing.py` (`blend_weight`, `blend_timing`), tests in `tests/test_timing_blend.py`.
+- Caveat: only 2 validation weeks; the blend vs hybrid A difference (≤ 0.0003 Brier) is within noise.
 
 ## D46. @UkraineAlarmSignal — candidate second alert source (2026-10-12)
 - An alert feed: raion/city, **yellow/red level**, all-clears, local typed threats (БПЛА, КАБ).
@@ -396,3 +403,25 @@ One LightGBM predicts P(new alert starts) for each 3-hour **Kyiv-time** block of
 ## D15 (follow-up). Commit compressed Telegram data — Accepted (user, 2026-10-12)
 Re-scraping takes hours (@air_alert_ua alone ~5 h). Proposal: commit `.jsonl.gz` copies of the scraped channels and `official_labels.parquet` (tens of MB) so a new session/container doesn't need to re-download.
 Done: `data/telegram/*.jsonl.gz` (all scraped channels; downloads complete) and `data/labels/official_labels.parquet` (5 MB). Restore with `scripts/restore_data.sh`.
+
+## D47. LightGBM settings for the new-alert classifiers (1h, 3h) — Accepted (user, 2026-10-12)
+`reports/tuning.md`, `scripts/tune_lgbm.py`. 12 candidates (current + 11 drawn from a grid fixed in advance), 4 validation weeks, test untouched. Adoption rule fixed before running: better than the current settings in ≥ 3 of 4 weeks, ≥ 0.5% lower average Brier, not worse on 1h.
+
+| Level | Chosen settings | 3h Brier current → new | weeks better | 3h skill | 1h Brier current → new |
+|---|---|---|---|---|---|
+| Raion | 31 leaves, min 500 rows/leaf, lr 0.03 × 700 trees, 60% of inputs per tree | 0.1333 → 0.1320 (−1.0%) | 4 of 4 | 0.326 → 0.333 | 0.0771 → 0.0769 |
+| Oblast | 31 leaves, min 1000 rows/leaf, lr 0.03 × 700 trees, 60% of inputs per tree | 0.1269 → 0.1258 (−0.8%) | 3 of 4 | 0.366 → 0.371 | 0.0799 → 0.0794 |
+
+- Pattern: simpler trees and fewer inputs per tree help a little; the most complex trees (127 leaves) are the only clearly worse option. The current settings were slightly too detailed.
+- Gains are small (about +0.005–0.007 skill) but consistent.
+- Scope: only the 1h/3h new-alert classifiers. Duration, 24h count/hours, timing and red/yellow keep the D34 settings.
+- Alternative: one setting for both levels (candidate 4 also passed for oblast, −0.5%); the rule picks the lowest Brier, so candidate 6 for oblast.
+
+## D48. No changes after the test — Accepted (user, 2026-10-12)
+The final test (`reports/test_results.md`) showed two weak spots: the 24h alert count lost to the 7-day average (4–8% larger error), and the oblast week-ahead blend was worse than the pattern rule for days 1–2. **We keep the frozen models anyway** (user: changing something after seeing the test results is bad practice; the test would no longer be an independent check). Both weak spots are reported openly on the quality page.
+
+## D49. 24h count and hours shown as ranges from percentile models — Accepted (user, 2026-10-12)
+25th–75th percentile LightGBM models (same method as duration, D41). Their coverage (how often the true value falls inside the range) is measured on the last validation week (6–12 Sep), not on the test weeks.
+
+## D50. Forecast moment and data refresh — Accepted (user, 2026-10-12)
+The site is first built on the pinned data: forecast moment 2026-10-11 09:00 UTC (12:00 Kyiv). If time allows before the deadline, a refresh with newer data (new pins recorded) updates only the live forecast; the reported test scores stay on the pinned data, with the test start fixed at 2026-09-13.

@@ -125,3 +125,19 @@ def timing_rows(panel, feats, issues, last_known, parent_of=None):
 
 
 TIMING_EXTRA = ["lead_h", "block_slot", "block_dow", "blk_rate14", "blk_dow4", "nat_blk_rate14"]
+
+
+# D45 (accepted 2026-10-12): near-term blocks use the timing model, far blocks the pattern rule, with a fixed
+# linear hand-over. Nothing is fitted; 72 h was fixed before looking at the validation numbers.
+BLEND_HORIZON_H = 72.0
+
+
+def blend_weight(lead_h):
+    """Weight of the timing model: 1 at lead 0 h, falling linearly to 0 at BLEND_HORIZON_H and beyond."""
+    return np.clip(1.0 - np.asarray(lead_h, float) / BLEND_HORIZON_H, 0.0, 1.0)
+
+
+def blend_timing(p_model, p_pattern, lead_h):
+    """Week-ahead probability = w * model + (1 - w) * pattern rule (blk_rate14), w = blend_weight(lead_h)."""
+    w = blend_weight(lead_h)
+    return w * np.asarray(p_model, float) + (1.0 - w) * np.asarray(p_pattern, float)
