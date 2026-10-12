@@ -1,6 +1,6 @@
 # Data quality report
 
-Built 2026-10-12 10:22 UTC from Vadimkin `bf0c323c`, JustJimer `7abc556b`, @air_alert_ua posts #1–#338380 (338,360 posts), @war_monitor 46,492 posts.
+Built 2026-10-12 12:21 UTC from Vadimkin `bf0c323c`, JustJimer `7abc556b`, @air_alert_ua posts #1–#338380 (338,360 posts), @war_monitor 46,492 posts.
 
 ## 1. Official rows by message type (D25)
 
