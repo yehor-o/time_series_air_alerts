@@ -22,8 +22,8 @@ Deadline: **Mon 2026-10-12, 23:59 Kyiv**. Done items from earlier phases are sum
 
 5. [ ] (if time) @UkraineAlarmSignal cross-check of the archive (holes, Lviv/Volyn, yellow/red)
 6. [x] Re-checked: both repos have newer commits; user chose to keep the pins
-7. [ ] **Final choice table** written (`reports/final_choices.md`) → waiting for user sign-off
-8. [ ] **Final test run** 13 Sep – 11 Oct (main models; red: train Sep 6–26, test Sep 27+), hourly predictions for the replay and the history strip
+7. [x] **Final choice table** signed off (D47 accepted)
+8. [x] **Final test run** done (`reports/test_results.md`, `test_metrics.json`, hourly predictions in `reports/test_predictions_*.parquet`)
 9. [ ] Retrain on all data → "now" + week-ahead predictions
 10. [ ] `scripts/export_site.py` → `site/data/{meta,now,week,history,replay,metrics}.json` (same format as the sample)
 11. [ ] Site: real data, quality page numbers (incl. with/without Telegram), screenshots → user

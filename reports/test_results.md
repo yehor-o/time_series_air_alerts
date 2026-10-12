@@ -300,3 +300,46 @@ baseline: same as last 24h              2.198             1.085  3.555          
 baseline: daily average of last 7 days  2.231             1.442  3.300                   0.000
 LightGBM (chosen)                       2.058             1.018  3.252                   0.077
 ```
+
+### When: new alert in each 3-hour Kyiv block of the next 7 days
+
+Forecasts issued at 00:00 and 12:00 Kyiv inside the test period; 66,528 (unit, issue, block) cases whose block ended before the end of data (later days of the week have fewer cases).
+
+All blocks:
+
+```
+                     Brier  log-loss  ROC-AUC  PR-AUC  skill vs pattern
+pattern rule        0.1682    0.5511   0.8296  0.7276           -0.0000
+timing model alone  0.2189    0.6256   0.8132  0.7095           -0.3014
+blend (chosen)      0.1740    0.5404   0.8278  0.7280           -0.0347
+```
+
+ROC-AUC by lead day:
+
+```
+                    day 1  day 2  day 3  day 4  day 5  day 6  day 7
+pattern rule        0.832  0.828  0.829  0.829  0.831  0.830  0.829
+timing model alone  0.822  0.812  0.806  0.811  0.818  0.814  0.811
+blend (chosen)      0.830  0.831  0.832  0.829  0.831  0.830  0.829
+```
+
+Brier by lead day:
+
+```
+                     day 1   day 2   day 3   day 4   day 5   day 6   day 7
+pattern rule        0.1662  0.1686  0.1683  0.1687  0.1677  0.1683  0.1695
+timing model alone  0.2006  0.2182  0.2269  0.2275  0.2231  0.2183  0.2195
+blend (chosen)      0.1899  0.1803  0.1700  0.1687  0.1677  0.1683  0.1695
+```
+
+## Red vs yellow (if an alert starts in a raion)
+
+Own split (D32): trained on 9,138 alerts from 6–26 Sep, tested on 6,763 alerts from 27 Sep to the end of data. Red share in the test alerts: 0.29.
+
+```
+                                       Brier  log-loss  ROC-AUC  PR-AUC
+baseline: overall red share           0.2251    0.6430   0.5000  0.2919
+baseline: previous alert's level      0.1763    0.5369   0.7116  0.4691
+raion red share last 7 days (chosen)  0.1372    0.4455   0.8454  0.6757
+logistic, 5 level features            0.1381    0.4348   0.8372  0.6761
+```

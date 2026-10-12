@@ -13,7 +13,12 @@ _Last updated: 2026-10-12, ~17:30 Kyiv (session 2)._ Deadline: **today 23:59 Kyi
   - Telegram not used: neither @war_monitor nor @kpszsu helps (D44);
   - week-ahead timing = blend of model and pattern rule, w = 1 − lead/72 h (D45, accepted).
 - **LightGBM tuning done** (D47, Proposed): 3h skill raion 0.326 → 0.333, oblast 0.366 → 0.371.
-- **Final choice table:** `reports/final_choices.md`, waiting for the user's sign-off.
+- **Final choice table** signed off; **FINAL TEST RUN DONE** (13 Sep – 11 Oct, scored once): `reports/test_results.md`.
+  - New alert 3h: AUC 0.836 / 0.854, skill 0.34 / 0.40 vs same-hour rule (raion / oblast); 1h: AUC 0.822 / 0.825, skill 0.15 / 0.16; well calibrated.
+  - Duration 25–75% range covers 48% / 49% (ideal 50%; rule 42–43%).
+  - 24h hours under alert: 8% better than the 7-day average; 24h count: 4–8% WORSE than the 7-day average.
+  - Timing blend: raion +0.003 skill vs pattern; oblast −0.035 (the oblast timing model is badly calibrated on the test weeks).
+  - Red vs yellow (test from 27 Sep): AUC 0.845 for the 7-day red-share rule.
 - **Website: skeleton done** in `site/` on SAMPLE data (map, click panel, strips, heatmap, replay, quality, about). Real data export not done yet.
 - **NOT done:** final test run (13 Sep – 11 Oct), "now" and week-ahead predictions, `scripts/export_site.py`, Netlify deploy, README.
 
