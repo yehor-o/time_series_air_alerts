@@ -16,15 +16,28 @@ Details in `Project-State.md`; plans for the next steps in `docs/next_steps.md`.
 - [x] Netlify deploy; README; `docs/how_it_works.md`
 - [x] **Live hourly forecasts** via the alerts.in.ua API + GitHub Actions (D51, D52); twice-monthly retraining via PR
 - [x] Editorial Dark design; Major-cities card; "under alert now"; clearer Forecast check
+- [x] Site QA (session 3) and website-only fixes (D56): under-alert stripes + continuous alerts, outlook vs hourly labels,
+      history-strip gaps, About page, red-tile evidence
 
 ## Next (planned, need approval; see `docs/next_steps.md`)
 1. [ ] **Task 5: keep the repo small** (D54): live data on a `live-data` branch + Netlify build hook; models as GitHub Releases; archive cleanup (~1.5–2 h)
 2. [ ] **Task 3: faster hourly runs** (D53): rolling API refresh, validated offline first (~2 h; after task 5)
 3. [ ] **Task 4: neighbouring-district inputs** (D55): ~5 h of work + 2–4 weeks of new data for a fair test
 
+## Open from the site QA (2026-10-12, not started; numbers as in the QA report)
+- [ ] 2b. Stitch the hourly 1 h / 3 h forecast into the outlook blocks that overlap the next 3 hours (pipeline, decision needed;
+      check both versions on the Forecast check for 2 weeks)
+- [ ] 7b. Red share with shrinkage toward the national share, k chosen on 13–26 Sep (changes D35; pipeline + data rebuild)
+- [ ] 5. "Next 1 h" window is partly over when published (show clock times; faster runs, task 3)
+- [ ] 6. Staleness banner if the forecast is more than ~2 h old
+- [ ] 8. Forecast check: label partly checked forecasts; explain empty tiles; "data up to" mismatch with the header
+- [ ] 9. Netlify badge overlaps the bottom right (Netlify setting); cities card covers the south-east; block picker covers the north
+- [ ] 10–15. Polish: "Kyiv City, Kyiv City"; UA tabs wrap at 1280 px; colour ramp contrast and week-strip 35% floor;
+      district search / keyboard access; phone layout (D43); map re-fit on resize
+
 ## Open items
-- [ ] User: review the Ukrainian texts
-- [ ] Watch the first scheduled hourly runs
+- [ ] User: review the Ukrainian texts (incl. the new About and panel texts)
+- [ ] Watch the scheduled hourly runs (none had started by 20:35 UTC on 12 Oct)
 
 ## Later / optional
 - @UkraineAlarmSignal cross-check of the archive (holes, Lviv/Volyn, D30)

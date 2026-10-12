@@ -1,13 +1,23 @@
 # Project State
 
-_Last updated: 2026-10-12, ~23:00 Kyiv (end of session 2)._ The deadline version (2026-10-12 23:59 Kyiv) is **done and live**.
+_Last updated: 2026-10-12, ~23:40 Kyiv (session 3: site QA and website fixes)._ The deadline version (2026-10-12 23:59 Kyiv) is **done and live**.
 
 ## Live site
 **https://air-alert-forecast-ua.netlify.app**: Netlify publishes `site/` from `main`.
 - Pages: Map, Replay, Forecast check, How good is it?, About; **EN | UA** switch (`?lang=uk`).
 - Design: **Editorial Dark** (default). Other looks via `?theme=classic|glass|light|civic`.
-- Map panel: big 3-hour number, 1 h / duration / red tiles, next 24 h blocks, week heatmap, 7-day history strip.
-  "Major cities" card (Kyiv, Lviv, Kharkiv, Odesa; 1 h and 3 h) and "under alert now" flags.
+- Map panel: "Right now · updated every hour" (big 3-hour number, 1 h / duration / red tiles, 24 h count and hours) and
+  "Outlook" (next 8 three-hour blocks, week heatmap, week strip), then the 7-day history strip.
+  "Major cities" card (Kyiv, Lviv, Kharkiv, Odesa; 1 h and 3 h).
+- Site QA fixes (session 3, website only, D56; QA list in `tasks.md`):
+  - districts/oblasts **under alert now** are striped red ("under alert since HH:MM"); an alert running **24 h+** is a
+    "continuous alert" with no forecast (12 Oct: Kharkivskyi and Nikopolskyi districts, Kharkivska and Dnipropetrovska oblasts);
+  - the outlook blocks (made at 00:00 / 12:00) are labelled as older than the hourly numbers; the block already in progress is
+    left out and blocks overlapping the next 3 h are dashed;
+  - history strip: hours without a saved forecast are a grey gap (found via `p3_log.json`), not 0%;
+  - red tile shows its evidence ("0 of 15 alerts here in 7 days were red; nationally 26%"), never a bare 0% / 100%;
+  - About (EN + UA) describes the live hourly system; model training date read from `meta.json`.
+  - All of it is computed in the browser from `history.json` / `p3_log.json`; the pipeline and the forecasts are unchanged.
 
 ## Live system (D51, D52)
 - **Hourly** (`.github/workflows/live.yml`, :07 UTC, ~15 min): alerts.in.ua API (`scripts/fetch_live.py`, token in the
@@ -19,7 +29,10 @@ _Last updated: 2026-10-12, ~23:00 Kyiv (end of session 2)._ The deadline version
 - Models in `models/` (12.5 MB gzipped LightGBM text + `meta.json`), trained on data to **2026-10-12 12:00 Kyiv**.
 - Week view issued at 00:00 / 12:00 Kyiv; history strip from a rolling log of the site's own forecasts
   (`site/data/p3_log.json`); Forecast check archives the 00:00 / 12:00 forecasts (`site/data/archive/`).
-- Run #1 (19:20 UTC) fetched fine but did not publish (fixed in PR #10); **run #2 (19:51 UTC) published**. Hourly since then.
+- Run #1 (19:20 UTC) fetched fine but did not publish (fixed in PR #10); **run #2 (19:51 UTC) published**.
+- **No scheduled (cron) run had started by 20:35 UTC** (the 20:07 slot was skipped); only the two manual runs exist. GitHub
+  often delays new schedules, but this needs watching. Until the next run, `now.json` has no `active` flag (the site derives
+  it from `history.json`).
 
 ## Method in short (details: `docs/how_it_works.md`, `decisions.md`)
 - Data: official dataset to 2026-09-06 (non-air-raid rows removed via @air_alert_ua labels) + alerts.in.ua archive
@@ -66,6 +79,10 @@ Full command list: `README.md`. Run heavy model jobs one at a time.
 2. Task 3: faster hourly runs (rolling API refresh, ~5 min per run), D53; after task 5.
 3. Task 4: neighbouring-district inputs (~5 h of work + 2–4 weeks for a fair test), D55.
 
+Not started, from the site QA (`tasks.md`): pipeline versions of the panel fix (stitch the hourly forecast into the near
+blocks) and of the red share (shrinkage toward the national share); staleness banner; "next 1 h" window partly over when
+published; Forecast check partial-day labels; layout polish.
+
 ## Open items for the user
-- Review the Ukrainian texts on the site.
-- Watch the first scheduled hourly runs (GitHub → Actions → live-forecast).
+- Review the Ukrainian texts on the site (including the new About paragraphs and panel texts).
+- Watch the scheduled hourly runs (GitHub → Actions → live-forecast): none had started by 20:35 UTC.
