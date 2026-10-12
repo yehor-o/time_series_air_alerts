@@ -20,7 +20,8 @@ _Last updated: 2026-10-12, ~17:30 Kyiv (session 2)._ Deadline: **today 23:59 Kyi
   - Timing blend: raion +0.003 skill vs pattern; oblast −0.035 (the oblast timing model is badly calibrated on the test weeks).
   - Red vs yellow (test from 27 Sep): AUC 0.845 for the 7-day red-share rule.
 - **Website shows REAL data** (`scripts/predict_now.py` + `scripts/export_site.py`): forecast moment 2026-10-11 09:00 UTC (12:00 Kyiv), pinned data. Screenshots: `reports/screens/`. 24h ranges cover 52–65% on the last validation week (ideal 50%).
-- **NOT done:** model-comparison page, Netlify deploy, README, optional data refresh (D50).
+- **"How good is it?" page** merged with the model comparison: 8 chart sections from `metrics.json` (test results), weak spots marked "lost" (D48).
+- **NOT done:** Netlify deploy, README, merge into main, optional data refresh (D50).
 
 ## Session 2 (2026-10-12)
 - Data rebuilt at the pinned commits (both upstream repos have newer commits; the user chose to keep the pins).

@@ -279,27 +279,197 @@ function initReplay() {
   draw(0);
 }
 
-// ---------- quality ----------
+// ---------- quality: how good is it? (test results + model comparison) ----------
+const CH = { chosen: "#3987e5", other: "#6b7a93", s2: "#d95926", s3: "#199e70", grid: "#2b3d5c", ink: "#b6c2d6", muted: "#8394ad" };
+const f3 = (v) => (v == null ? "–" : (+v).toFixed(3));
+const f2 = (v) => (v == null ? "–" : (+v).toFixed(2));
+
+// Horizontal bars, one per method; the chosen method in blue, alternatives grey; value labels at the bar end.
+function hbars(host, title, items, { fmt = f3, min = 0, max = 1, ref = null, note = "" } = {}) {
+  const W = 400, lw = 150, rowH = 26, top = ref ? 18 : 6, H = top + items.length * rowH + 22;
+  const sx = (v) => lw + ((v - min) / (max - min)) * (W - lw - 54);
+  const box = el("div", { className: "chart" }, `<div class="ctitle">${title}</div>`);
+  const svg = svgEl("svg", { width: W, height: H });
+  const x0 = sx(Math.max(min, 0));
+  [min, (min + max) / 2, max].forEach((v) => {
+    svg.append(svgEl("line", { x1: sx(v), x2: sx(v), y1: top, y2: H - 18, stroke: CH.grid, "stroke-dasharray": "2,3" }));
+    const t = svgEl("text", { x: sx(v) - 8, y: H - 4 }); t.textContent = fmt(v); svg.append(t);
+  });
+  items.forEach((it, k) => {
+    const y = top + k * rowH, a = Math.min(x0, sx(it.v)), w = Math.max(2, Math.abs(sx(it.v) - x0));
+    const lab = svgEl("text", { x: 0, y: y + 15, class: it.chosen ? "strong" : "" }); lab.textContent = it.label; svg.append(lab);
+    const r = svgEl("rect", { x: a, y: y + 4, width: w, height: 16, rx: 4, fill: it.chosen ? CH.chosen : CH.other });
+    r.onmousemove = (e) => showTip(e, `${it.label}: <b>${fmt(it.v)}</b>${it.tip ? "<br>" + it.tip : ""}`);
+    r.onmouseleave = () => (tip.hidden = true);
+    svg.append(r);
+    // with a reference line the value sits inside the bar end, so it never collides with the line
+    const v = ref ? svgEl("text", { x: sx(it.v) - 6, y: y + 16, "text-anchor": "end", class: "inbar" })
+      : svgEl("text", { x: Math.max(sx(it.v), x0) + 5, y: y + 16, class: it.chosen ? "strong" : "" });
+    v.textContent = fmt(it.v); svg.append(v);
+  });
+  svg.append(svgEl("line", { x1: x0, x2: x0, y1: top, y2: H - 18, stroke: CH.muted }));
+  if (ref) {
+    svg.append(svgEl("line", { x1: sx(ref.v), x2: sx(ref.v), y1: top, y2: H - 18, stroke: "#eef2f8", "stroke-width": 1.5, "stroke-dasharray": "5,3" }));
+    const t = svgEl("text", { x: sx(ref.v), y: top - 6, "text-anchor": "middle" }); t.textContent = ref.label; svg.append(t);
+  }
+  box.append(svg);
+  if (note) box.append(el("div", { className: "cnote" }, note));
+  host.append(box);
+}
+
+// Lines over x categories (e.g. lead day), legend + end labels, hover shows all series at that x.
+function lchart(host, title, xs, series, { fmt = f3, min, max, note = "" } = {}) {
+  const W = 400, H = 210, l = 40, r = 70, t = 10, b = 26;
+  const sx = (i) => l + (i / (xs.length - 1)) * (W - l - r), sy = (v) => t + (1 - (v - min) / (max - min)) * (H - t - b);
+  const box = el("div", { className: "chart" }, `<div class="ctitle">${title}</div>`);
+  const svg = svgEl("svg", { width: W, height: H });
+  for (let k = 0; k <= 4; k++) {
+    const v = min + (k / 4) * (max - min);
+    svg.append(svgEl("line", { x1: l, x2: W - r, y1: sy(v), y2: sy(v), stroke: CH.grid }));
+    const tx = svgEl("text", { x: 0, y: sy(v) + 4 }); tx.textContent = fmt(v); svg.append(tx);
+  }
+  xs.forEach((x, i) => { const tx = svgEl("text", { x: sx(i) - 14, y: H - 6 }); tx.textContent = x; svg.append(tx); });
+  series.forEach((s) => {
+    svg.append(svgEl("polyline", { points: s.vals.map((v, i) => `${sx(i)},${sy(v)}`).join(" "), fill: "none", stroke: s.color, "stroke-width": 2 }));
+    s.vals.forEach((v, i) => svg.append(svgEl("circle", { cx: sx(i), cy: sy(v), r: 4, fill: s.color, stroke: "#0e1726", "stroke-width": 2 })));
+  });
+  // end labels, nudged apart so they never overlap
+  const ends = series.map((s) => ({ s, y: sy(s.vals[s.vals.length - 1]) })).sort((a, b2) => a.y - b2.y);
+  ends.forEach((e, k) => { if (k && e.y - ends[k - 1].y < 13) e.y = ends[k - 1].y + 13; });
+  ends.forEach((e) => { const tx = svgEl("text", { x: W - r + 6, y: e.y + 4 }); tx.textContent = e.s.short; tx.setAttribute("fill", CH.ink); svg.append(tx); });
+  xs.forEach((x, i) => {
+    const hit = svgEl("rect", { x: sx(i) - (W - l - r) / (2 * (xs.length - 1)), y: t, width: (W - l - r) / (xs.length - 1), height: H - t - b, fill: "transparent" });
+    hit.onmousemove = (e) => showTip(e, `<b>${x}</b><br>` + series.map((s) => `<i class="sw" style="background:${s.color}"></i>${s.name}: <b>${fmt(s.vals[i])}</b>`).join("<br>"));
+    hit.onmouseleave = () => (tip.hidden = true);
+    svg.append(hit);
+  });
+  box.append(svg);
+  box.append(el("div", { className: "legend-row" }, series.map((s) => `<span><i class="sw" style="background:${s.color}"></i>${s.name}</span>`).join("")));
+  if (note) box.append(el("div", { className: "cnote" }, note));
+  host.append(box);
+}
+
 function renderQuality() {
-  const M = S.D.metrics;
+  const M = S.D.metrics, F = M.full, LV = { raion: "District", oblast: "Oblast" };
   const rows = (arr, cols) => arr.map((r) => `<tr>${cols.map(([k, f, num]) => `<td class="${num ? "num" : ""}">${f ? f(r[k]) : r[k]}</td>`).join("")}</tr>`).join("");
-  const n3 = (v) => (v == null ? "–" : (+v).toFixed(3));
-  $("#quality").innerHTML = `<div class="docbody">
+  const cov = M.range_coverage_validation_week;
+  $("#quality").innerHTML = `<div class="docbody wide">
     <h2>How good is it?</h2>
-    <p>Test period: <b>${M.test_period[0]} – ${M.test_period[1]}</b>. The models were trained only on data before this period,
-      and every forecast used only information available at its time. "Baseline" is the simple rule "how often did an alert start
-      at this clock hour on each of the last 14 days".</p>
+    <p>Everything on this page was measured on the <b>test period ${M.test_period[0]} – ${M.test_period[1]}</b>: four weeks that no model and
+      no design choice had seen. Every model was trained only on earlier data, every forecast used only information available at its
+      time, and the test was run <b>once</b>. All choices were frozen before it, and nothing was changed after seeing the results, including
+      the two places where our model lost (marked <span class="lost">lost</span> below).</p>
     <p><b>AUC</b>: the chance that a random hour with a new alert got a higher forecast than a random hour without one (0.5 = guessing, 1 = perfect).
-      <b>Skill</b>: how much smaller the forecast errors are than the baseline's (0 = no better, 0.3 = 30% smaller).</p>
-    <table><tr><th>What we predict</th><th>Level</th><th class="num">Model AUC</th><th class="num">Baseline AUC</th><th class="num">Skill</th></tr>
-      ${rows(M.headline, [["target"], ["level"], ["model_auc", n3, 1], ["baseline_auc", n3, 1], ["skill", n3, 1]])}</table>
-    <h3>Calibration: when we say p, how often does it happen?</h3><div id="calib"></div>
-    <h3>Day vs night</h3><table><tr><th>Part of day (Kyiv)</th><th class="num">AUC</th></tr>${rows(M.day_night, [["part"], ["auc", n3, 1]])}</table>
-    <h3>With vs without Telegram (@war_monitor)</h3>
-    <p>The same model with and without 26 inputs computed from @war_monitor posts. Skill vs baseline; higher is better.</p>
-    <table><tr><th>Target</th><th class="num">Without Telegram</th><th class="num">With Telegram</th></tr>${rows(M.telegram, [["target"], ["without", n3, 1], ["with", n3, 1]])}</table>
+      <b>Skill</b>: how much smaller the forecast errors (Brier score) are than the simple rule "how often did an alert start at this clock hour on
+      each of the last 14 days" (0 = no better, 0.3 = 30% smaller, below 0 = worse). In the charts, <span class="chip-b">blue</span> is the method
+      the site uses and <span class="chip-g">grey</span> are the alternatives.</p>
+    <table><tr><th>What we predict</th><th>Level</th><th class="num">Model AUC</th><th class="num">Simple rule AUC</th><th class="num">Skill</th></tr>
+      ${rows(M.headline, [["target"], ["level"], ["model_auc", f3, 1], ["baseline_auc", f3, 1], ["skill", f3, 1]])}</table>
+
+    <h3>1. Our model vs simpler methods: will a new alert start?</h3>
+    <div class="seg" id="q-metric"><button data-m="ROC-AUC" class="on">AUC</button><button data-m="skill vs same-hour">Skill</button></div>
+    <p class="cap">LightGBM (our model) against three simpler methods: the clock-hour rule, "persistence" (an alert is likely again if one started in the
+      last hours) and logistic regression (a simple straight-line model). Higher is better.</p>
+    <div class="grid2" id="q-models"></div>
+
+    <h3>2. Does Telegram help?</h3>
+    <p class="cap">The same model with extra inputs from Telegram channels (@war_monitor: threat reports; @kpszsu: the Air Force). Skill; higher is better.
+      Telegram was <b>not</b> used, because it lost on the validation weeks before the test. On the test, @war_monitor was slightly better at oblast level and
+      slightly worse at district level; differences below 0.01 are within noise.</p>
+    <div class="grid2" id="q-tg"></div>
+
+    <h3>3. Is it stable? Week by week, day vs night</h3>
+    <p class="cap">Skill of the 3-hour forecast in each full test week, and AUC by time of day (Kyiv). The model was useful in every week, a bit better by day.</p>
+    <div class="grid2" id="q-stab"></div>
+
+    <h3>4. Can the percentages be taken literally? (calibration)</h3>
+    <p class="cap">District forecasts for 3 hours, grouped by the forecast. When we said 40–50%, an alert started in about 46% of cases. Points on the dashed line = perfect.</p>
+    <div id="calib"></div>
+
+    <h3>5. How long will an alert last? (duration ranges)</h3>
+    <p class="cap">We show a range "usually X–Y min" (our 25th–75th percentile). A good range contains the true duration about half the time (dashed line).</p>
+    <div class="grid2" id="q-dur"></div>
+
+    <h3>6. Next 24 hours: how many alerts, how many hours under alert?</h3>
+    <p class="cap">Average miss (lower is better), against "same as the last 24 hours" and "daily average of the last 7 days".
+      Hours under alert: our model wins by 8%. Number of alerts: <span class="lost">lost</span>, the 7-day average was 4–8% better.
+      The ranges shown on the map contained the true value ${pct(cov.raion.y_hours_24h.inside_25_75_range)} (hours) and ${pct(cov.raion.y_count_24h.inside_25_75_range)} (count) of the time
+      in the last validation week (ideal about 50%).</p>
+    <div class="grid2" id="q-24"></div>
+
+    <h3>7. When in the coming week? (3-hour blocks)</h3>
+    <p class="cap">AUC by how many days ahead. The site uses a <b>blend</b>: our timing model for the near term, fading into the "pattern rule"
+      (share of the last 14 days with an alert in that clock block) by day 3. Districts: the blend was best on days 1–3.
+      Oblasts: <span class="lost">lost</span>, the blend's percentages for days 1–2 were less accurate than the pattern rule's
+      (average error ${f3(F.oblast.timing.brier_by_day["blend (chosen)"]["day 1"])} vs ${f3(F.oblast.timing.brier_by_day["pattern rule"]["day 1"])} on day 1), although it ranks blocks equally well.</p>
+    <div class="grid2" id="q-time"></div>
+
+    <h3>8. Red or yellow?</h3>
+    <p class="cap">If an alert starts in a district, is it red (missiles, ballistic) or yellow (drones)? Trained on ${F.red.train.toLocaleString()} alerts
+      from 6–26 Sep, tested on ${F.red.test.toLocaleString()} alerts from 27 Sep (${pct(F.red.red_share)} red). The simple rule
+      "this district's red share in the last 7 days" works best.</p>
+    <div class="grid2" id="q-red"></div>
   </div>`;
+
+  const MODELS = [["baseline: same hour, last 14 days", "Clock-hour rule"], ["baseline: persistence", "Persistence"],
+    ["logistic regression", "Logistic regression"], ["LightGBM (chosen)", "LightGBM (ours)"]];
+  const drawModels = (metric) => {
+    const host = $("#q-models"); host.innerHTML = "";
+    for (const lv of ["raion", "oblast"]) for (const h of [1, 3]) {
+      const tb = F[lv][`start_${h}h`].table;
+      hbars(host, `${LV[lv]}, new alert within ${h} h`, MODELS.map(([k, lab]) => ({ label: lab, v: tb[k][metric], chosen: k.includes("chosen") })),
+        metric === "ROC-AUC" ? { min: 0.5, max: 0.9 } : { min: -0.2, max: 0.5 });
+    }
+  };
+  drawModels("ROC-AUC");
+  document.querySelectorAll("#q-metric button").forEach((b) => (b.onclick = () => {
+    document.querySelectorAll("#q-metric button").forEach((x) => x.classList.toggle("on", x === b)); drawModels(b.dataset.m);
+  }));
+
+  for (const lv of ["raion", "oblast"]) for (const h of [1, 3]) {
+    const tb = F[lv][`start_${h}h`].table, k = "skill vs same-hour";
+    hbars($("#q-tg"), `${LV[lv]}, new alert within ${h} h`, [
+      { label: "No Telegram (used)", v: tb["LightGBM (chosen)"][k], chosen: true },
+      { label: "+ @war_monitor", v: tb["LightGBM + @war_monitor"][k] }, { label: "+ @kpszsu", v: tb["LightGBM + @kpszsu"][k] }],
+    { min: 0, max: 0.5 });
+  }
+  for (const lv of ["raion", "oblast"]) {
+    const wk = F[lv].start_3h.weeks;
+    hbars($("#q-stab"), `${LV[lv]}: skill by test week (3 h)`, ["week 1", "week 2", "week 3", "week 4"].map((w) => ({ label: w[0].toUpperCase() + w.slice(1), v: wk[w]["skill vs same-hour"], chosen: true })),
+      { min: 0, max: 0.6, note: "A fifth, partial week (the last 10 hours of data) is left out." });
+  }
+  for (const lv of ["raion", "oblast"]) {
+    const dn = F[lv].start_3h.day_night;
+    hbars($("#q-stab"), `${LV[lv]}: AUC by time of day (3 h)`, [{ label: "Day (06–22)", v: dn["day (06-22 Kyiv)"]["ROC-AUC"], chosen: true },
+      { label: "Night (22–06)", v: dn["night (22-06 Kyiv)"]["ROC-AUC"], chosen: true }], { min: 0.5, max: 0.9 });
+  }
   drawCalibration($("#calib"), M.calibration);
+  for (const lv of ["raion", "oblast"]) {
+    const d = F[lv].duration, k = "true duration inside the 25-75% range", wk = "average range width (min)";
+    hbars($("#q-dur"), `${LV[lv]}: true duration inside the range`, [
+      { label: "Last 10 alerts (rule)", v: d["baseline: last 10 alerts"][k], tip: `average range width ${Math.round(d["baseline: last 10 alerts"][wk])} min` },
+      { label: "LightGBM (ours)", v: d["LightGBM quantiles (chosen)"][k], chosen: true, tip: `average range width ${Math.round(d["LightGBM quantiles (chosen)"][wk])} min` }],
+    { fmt: pct, min: 0, max: 0.7, ref: { v: 0.5, label: "ideal" } });
+  }
+  const R24 = [["baseline: same as last 24h", "Same as last 24 h"], ["baseline: daily average of last 7 days", "7-day average"], ["LightGBM (chosen)", "LightGBM (ours)"]];
+  for (const [tg, name, unit] of [["hours", "hours under alert", "h"], ["count", "number of alerts", ""]]) for (const lv of ["raion", "oblast"]) {
+    const t = F[lv].next24h[tg];
+    hbars($("#q-24"), `${LV[lv]}: ${name}, average miss${unit ? " (h)" : ""}`, R24.map(([k, lab]) => ({ label: lab, v: t[k].MAE, chosen: k.includes("chosen") })),
+      { fmt: f2, min: 0, max: 2.5 });
+  }
+  const days = ["day 1", "day 2", "day 3", "day 4", "day 5", "day 6", "day 7"];
+  for (const lv of ["raion", "oblast"]) {
+    const a = F[lv].timing.auc_by_day;
+    lchart($("#q-time"), `${LV[lv]}: AUC by days ahead`, days.map((d) => d.replace("day ", "Day ")), [
+      { name: "Blend (used)", short: "Blend", color: CH.chosen, vals: days.map((d) => a["blend (chosen)"][d]) },
+      { name: "Pattern rule", short: "Pattern", color: CH.s2, vals: days.map((d) => a["pattern rule"][d]) },
+      { name: "Timing model alone", short: "Model", color: CH.s3, vals: days.map((d) => a["timing model alone"][d]) }],
+    { min: 0.78, max: 0.84 });
+  }
+  const rt = F.red.table;
+  hbars($("#q-red"), "Red vs yellow: AUC", [["baseline: overall red share", "Always the average share"], ["baseline: previous alert's level", "Previous alert's level"],
+    ["logistic, 5 level features", "Logistic regression"], ["raion red share last 7 days (chosen)", "Red share, last 7 days"]]
+    .map(([k, lab]) => ({ label: lab, v: rt[k]["ROC-AUC"], chosen: k.includes("chosen") })), { min: 0.5, max: 0.9 });
 }
 function drawCalibration(host, cal) {
   const W = 360, H = 300, m = 34, sx = (v) => m + v * (W - m - 8), sy = (v) => H - m - v * (H - m - 8);
