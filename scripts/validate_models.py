@@ -31,6 +31,10 @@ from sklearn.preprocessing import StandardScaler
 P, REP = Path("data/processed"), Path("reports")
 SEED = 42
 N_FOLDS, FOLD = 4, pd.Timedelta("7D")
+# Fixed test period (D31, D50): starts 2026-09-13; the pinned data ended 2026-10-11 10:00 UTC. Kept fixed so that newer
+# data (refreshes of the live forecast) can never shift the validation folds or the reported test scores.
+TEST_START = pd.Timestamp("2026-09-13", tz="UTC")
+TEST_END = pd.Timestamp("2026-10-11 10:00", tz="UTC")
 WINDOWS = {"all (since 2024-01)": None, "12 months": pd.Timedelta("365D"), "6 months": pd.Timedelta("182D"),
            "3 months": pd.Timedelta("91D")}
 BASE_FEATS = ["active", "h_since_start", "h_since_end", "med_dur10", "starts_1h", "starts_3h", "starts_6h",
@@ -203,7 +207,7 @@ def main():
     po = pd.read_parquet(P / "panel_oblast.parquet")
     ev = pd.read_parquet(P / "red_events.parquet")
     last = max(pr.time.max(), po.time.max()) + pd.Timedelta("1h")
-    test_start = (last - pd.Timedelta("28D")).floor("D")
+    test_start = TEST_START
     codes = {o: i for i, o in enumerate(sorted(po.oblast.unique()))}
     first = pd.Timestamp("2024-01-31", tz="UTC")  # 30 days of warm-up for the "rate" features
     for d in (pr, po, ev):

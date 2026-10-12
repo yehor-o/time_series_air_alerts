@@ -23,7 +23,8 @@ _Last updated: 2026-10-12, ~17:30 Kyiv (session 2)._ Deadline: **today 23:59 Kyi
 - **"How good is it?" page** merged with the model comparison: 8 chart sections from `metrics.json` (test results), weak spots marked "lost" (D48).
 - **README** and final docs done (`README.md`, `docs/how_it_works.md` sections 8–9, About page).
 - **LIVE:** https://air-alert-forecast-ua.netlify.app (Netlify, publishes `site/` from `main` on every merge). PR #4 merged.
-- **NOT done:** optional data refresh (D50).
+- **Data refresh done (D50):** live forecast now 12 Oct 12:00 Kyiv from Vadimkin `d10c80fa` / JustJimer `c5b3bd01` (`data/versions_live.json`); test period fixed in code (`TEST_START`/`TEST_END` in `scripts/validate_models.py`); `data/versions.json` keeps the test pins. @war_monitor had no posts after 11 Oct 10:02 (no new silences ≥2 h in the archive, so no effect).
+- **NEXT (user to approve):** forecast-check page with saved forecasts vs actual alerts; Ukrainian version; live hourly forecasts via the alerts.in.ua API + GitHub Actions (after the deadline).
 
 ## Data snapshots (all downloads complete)
 - **In git (D15):** `data/telegram/*.jsonl.gz` and `data/labels/official_labels.parquet`. **Complete** downloads:

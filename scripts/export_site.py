@@ -4,7 +4,7 @@ in the format of scripts/make_sample_site_data.py, with "sample": false.
 Inputs: reports/now_predictions.json (scripts/predict_now.py), reports/test_predictions_{raion,oblast}.parquet and
 reports/test_metrics.json (scripts/final_test.py), data/processed/alerts_*.parquet, site/data/raions.geojson.
   history  the 7 days before the forecast moment: actual alerts (with yellow/red level) and the hourly 3h forecast
-           of the test-run models (trained before 13 Sep, so these are genuine out-of-sample forecasts)
+           of a model trained only on data before that week (predict_now.py), so genuine out-of-sample forecasts
   replay   the test weeks hour by hour: 3h forecast (%) and whether a new alert started (null = unknown)
   metrics  test results (headline, calibration, day/night, Telegram) + the full test tables for the comparison page
 
@@ -59,15 +59,14 @@ def main():
         a = a[(a.start < t) & (a.end.isna() | (a.end > h0))]
         tp = pd.read_parquet(REP / f"test_predictions_{lv}.parquet")
         ids = [u["id"] for u in units] if lv == "raion" else oblasts
-        win = tp[(tp.time >= h0) & (tp.time < t)].pivot(index="time", columns="unit", values="p_start_3h") \
-            .reindex(pd.date_range(h0, t - pd.Timedelta("1h"), freq="h"))
+        hpred = now[f"history_pred_{lv}"]  # out-of-sample: model trained before the 7-day window (predict_now.py)
         hist[lv] = {}
         for u in ids:
             g = a[a.unit == u]
             al = [[int(max(0, (s - h0) / pd.Timedelta("1min"))),
                    int(min(hours * 60, ((e if pd.notna(e) and e < t else t) - h0) / pd.Timedelta("1min"))), level_name(r)]
                   for s, e, r in zip(g.start, g.end, g.red)]
-            hist[lv][u] = {"alerts": al, "pred": [int(round(100 * x)) if pd.notna(x) else 0 for x in win[u]]}
+            hist[lv][u] = {"alerts": al, "pred": [int(round(100 * x)) if pd.notna(x) else 0 for x in hpred[u]]}
         # replay: the test weeks, hour by hour
         grid = pd.date_range(tp.time.min(), tp.time.max(), freq="h")
         pp = tp.pivot(index="time", columns="unit", values="p_start_3h").reindex(grid)

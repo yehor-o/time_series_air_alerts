@@ -22,7 +22,7 @@ import pandas as pd
 
 from src.alerts.telegram import load_channel
 from src.alerts.telegram_features import war_monitor_features, add_war_monitor
-from validate_models import BASE_FEATS, LGB_CLS, cls_scores, folds, lgb_cls, lgb_reg, mean_table, split
+from validate_models import BASE_FEATS, LGB_CLS, cls_scores, folds, lgb_cls, lgb_reg, mean_table, split, TEST_START
 
 P, REP = Path("data/processed"), Path("reports")
 FIRST = pd.Timestamp("2024-01-31", tz="UTC")
@@ -117,7 +117,7 @@ def main():
     log = lambda m: print(f"[{time.time() - t0:6.0f}s] {m}", flush=True)
     po = pd.read_parquet(P / "panel_oblast.parquet")
     last = po.time.max() + pd.Timedelta("1h")
-    test_start = (last - pd.Timedelta("28D")).floor("D")
+    test_start = TEST_START
     po = po[(po.time >= FIRST - pd.Timedelta("1D")) & (po.time < test_start)].copy()
     codes = {o: i for i, o in enumerate(sorted(po.oblast.unique()))}
     po["oblast_code"] = po.oblast.map(codes).astype("category")

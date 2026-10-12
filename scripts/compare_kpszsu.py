@@ -20,7 +20,7 @@ import pandas as pd
 from compare_telegram import FIRST, training
 from src.alerts.telegram import load_channel
 from src.alerts.telegram_features import add_war_monitor, war_monitor_features
-from validate_models import BASE_FEATS, PARENT_FEATS, cls_scores, folds, lgb_cls, lgb_reg, mean_table
+from validate_models import BASE_FEATS, PARENT_FEATS, cls_scores, folds, lgb_cls, lgb_reg, mean_table, TEST_START
 
 P, REP = Path("data/processed"), Path("reports")
 
@@ -52,7 +52,7 @@ def main():
     for level in ("raion", "oblast"):
         df = pd.read_parquet(P / f"panel_{level}.parquet")
         last = df.time.max() + pd.Timedelta("1h")
-        test_start = (last - pd.Timedelta("28D")).floor("D")
+        test_start = TEST_START
         start = folds(test_start)[0][0] - pd.Timedelta("400D") if level == "raion" else FIRST
         df = df[(df.time >= start) & (df.time < test_start)].copy()
         df["oblast_code"] = df.oblast.astype("category")

@@ -11,6 +11,8 @@ Per raion and oblast:
   red        share of red among the unit's alerts that started in the last 7 days (D35); if none, the national share
 Also: coverage of the 24h ranges on the last validation week (6-12 Sep; the test weeks are not used, D49).
 
+Also: history_pred_{level} = hourly 3h forecasts for the 7 days before t, from models trained before that week.
+
 Usage: PYTHONPATH=.:scripts python scripts/predict_now.py
 Output: reports/now_predictions.json
 """
@@ -45,8 +47,10 @@ def main():
     out, coverage = {}, {}
     for level in ("raion", "oblast"):
         pan = pd.read_parquet(P / f"panel_{level}.parquet")
-        t = pan.time.max()                      # forecast moment: last hour of the data
-        lk = t + pd.Timedelta("1h")             # targets are only known for windows ending before this
+        # forecast moment: the latest 00:00 / 12:00 Kyiv hour in the data (the timing model is trained on those issue
+        # times); nothing after t is used. Targets are only known for windows ending before lk.
+        t = issue_times(pan.time.max() - pd.Timedelta("2D"), pan.time.max())[-1]
+        lk = t + pd.Timedelta("1h")
         start = t - pd.Timedelta("400D") if level == "raion" else FIRST
         df = pan[pan.time >= start].copy()
         df["oblast_code"] = df.oblast.astype("category")
@@ -60,6 +64,14 @@ def main():
             tr, w = training(df[df[y].notna()], lk, h, level)
             m = lgb_cls(**TUNED[level]["params"]).fit(tr[feats], tr[y], sample_weight=w, categorical_feature=["oblast_code"])
             res[f"p{h}"] = m.predict_proba(now[feats])[:, 1]
+            if h == 3:  # history strip: the 7 days before t, forecast by a model trained only on data before that week
+                h0 = t - pd.Timedelta("168h")
+                trh, wh = training(df[df[y].notna()], h0, h, level)
+                mh = lgb_cls(**TUNED[level]["params"]).fit(trh[feats], trh[y], sample_weight=wh, categorical_feature=["oblast_code"])
+                win = df[(df.time >= h0) & (df.time < t)]
+                hp = pd.Series(mh.predict_proba(win[feats])[:, 1], index=[win.unit, win.time])
+                grid = pd.date_range(h0, t - pd.Timedelta("1h"), freq="h")
+                history_pred = {u: [round(float(hp.get((u, g), np.nan)), 3) for g in grid] for u in res.index}
         d = df[df.y_dur_3h.notna() & (df.y_dur_3h > 0)]
         tr, w = training(d, lk, 3 + 72, level)
         res["dur_lo"], res["dur_hi"] = quant(tr, w, feats, "y_dur_3h", now, n=300)
@@ -118,10 +130,11 @@ def main():
                              "week": [round(float(x), 3) for x in week[u]]}
             out[level][u]["next24"] = out[level][u]["week"][:8]
         out["forecast_time_utc"] = t.isoformat()
+        out[f"history_pred_{level}"] = history_pred
         out["block_starts_utc"] = [pd.Timestamp(b).tz_localize("UTC").isoformat() if pd.Timestamp(b).tzinfo is None
                                    else pd.Timestamp(b).isoformat() for b in blocks]
         del rows, tr, te
-    out["data_until_utc"] = data_until.isoformat()
+    out["data_until_utc"] = min(data_until, pd.Timestamp(out["forecast_time_utc"])).isoformat()  # nothing after t is used
     out["range_coverage_validation_week"] = coverage
     (REP / "now_predictions.json").write_text(json.dumps(out, ensure_ascii=False), encoding="utf-8")
     log("done")

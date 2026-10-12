@@ -120,4 +120,4 @@ What this means in plain words:
 
 ## 9. The forecast on the site
 
-The site shows one forecast, made at **11 Oct 2026, 12:00 Kyiv time**, from the pinned data (Vadimkin `bf0c323c`, JustJimer `7abc556b`). Every model was retrained on all data known at that moment, with the frozen settings (`scripts/predict_now.py`). The history strip and the replay show forecasts of the test-run models, which were trained before 13 Sep, so they are genuine forecasts made without knowing what happened next.
+The site shows one forecast, made at **12 Oct 2026, 12:00 Kyiv time**, from refreshed data (Vadimkin `d10c80fa`, JustJimer `c5b3bd01`, recorded in `data/versions_live.json`; D50). Every model was retrained on all data known at that moment, with the frozen settings (`scripts/predict_now.py`). The test scores stay on the pinned data (`data/versions.json`), with the test period fixed in the code (13 Sep – 11 Oct). The history strip shows forecasts of a model trained only on data before that week, and the replay shows the test-run models, so both are genuine forecasts made without knowing what happened next.
