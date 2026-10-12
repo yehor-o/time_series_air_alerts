@@ -678,28 +678,36 @@ function checkCard(host, sn, lv, id) {
   const t0 = new Date(sn.forecast_time_utc).getTime();
   const box = el("div", { className: "chart" }, `<div class="ctitle">${unitName(id, lv)}</div>`);
   const cells = el("div", { className: "cells ck" });
+  const known = (new Date(sn.known_until_utc).getTime() - t0) / 6e4;
+  // per block: "new alert" (a new alert started), "still on" (no new start, but an earlier alert was running), "quiet"
+  const running = (i) => u.alerts.some(([a, e]) => a < (i + 1) * 180 && e > i * 180);
   sn.block_starts_utc.forEach((b, i) => {
     const p = u.next24[i], y = u.actual_blocks[i];
-    const mark = y == null ? `<span class="ckm unk">${T("not yet", "ще ні")}</span>` : y ? `<span class="ckm yes">${T("alert", "тривога")}</span>` : `<span class="ckm no">${T("quiet", "тихо")}</span>`;
+    const mark = y == null ? `<span class="ckm unk">${T("not yet", "ще ні")}</span>`
+      : y ? `<span class="ckm yes">${T("started", "нова")}</span>`
+      : running(i) ? `<span class="ckm on">${T("still on", "триває")}</span>` : `<span class="ckm no">${T("quiet", "тихо")}</span>`;
     const c = el("div", { className: "cell" }, `${fHour.format(new Date(b))}<b>${pct(p)}</b>`);
     c.style.background = rampColor(p); c.style.color = textOn(p);
     const w = el("div", { className: "ckcol" }); w.append(c); w.append(el("div", {}, mark)); cells.append(w);
   });
-  box.append(el("div", { className: "cnote" }, T("Forecast: chance of a new alert in each 3-hour block (Kyiv time). Below: what happened.", "Прогноз: ймовірність нової тривоги в кожному 3-годинному блоці (за Києвом). Нижче: що сталося.")));
+  box.append(el("div", { className: "cnote" }, T("Forecast: chance that a new alert starts in each 3-hour block (Kyiv time). Below: what happened.", "Прогноз: ймовірність, що нова тривога почнеться в кожному 3-годинному блоці (за Києвом). Нижче: що сталося.")));
   box.append(cells);
-  // 24 h timeline of the actual alerts
-  const W = 400, svg = svgEl("svg", { width: W, height: 34 }), x = (m) => (m / 1440) * W;
-  svg.append(svgEl("rect", { x: 0, y: 6, width: W, height: 16, rx: 3, fill: V.surface, stroke: V.line }));
-  u.alerts.forEach(([s, e, lvl]) => {
-    const r = svgEl("rect", { x: x(s), y: 6, width: Math.max(1.5, x(e) - x(s)), height: 16, rx: 2, fill: COL[lvl] || COL.unknown });
-    r.onmousemove = (ev) => showTip(ev, `${fDayTime.format(new Date(t0 + s * 6e4))} – ${fHour.format(new Date(t0 + e * 6e4))}${lvl === "red" || lvl === "yellow" ? `<br><span class="chip ${lvl}">${lvlName(lvl)}</span>` : ""}`);
+  // 24 h timeline of the actual alerts, drawn on the same 8 columns as the blocks; a white mark = an alert started
+  const W = 800, H = 26, x = (m) => (m / 1440) * W;
+  const svg = svgEl("svg", { viewBox: `0 0 ${W} ${H}`, width: "100%", height: H, preserveAspectRatio: "none", class: "cktl" });
+  svg.append(svgEl("rect", { x: 0, y: 4, width: W, height: 18, fill: V.surface, stroke: V.line }));
+  u.alerts.forEach(([a, e, lvl]) => {
+    const r = svgEl("rect", { x: x(a), y: 4, width: Math.max(2, x(e) - x(a)), height: 18, fill: COL[lvl] || COL.unknown });
+    r.onmousemove = (ev) => showTip(ev, `${fDayTime.format(new Date(t0 + a * 6e4))} – ${fHour.format(new Date(t0 + e * 6e4))}${lvl === "red" || lvl === "yellow" ? `<br><span class="chip ${lvl}">${lvlName(lvl)}</span>` : ""}${a === 0 ? `<br>${T("started before the forecast", "почалася до прогнозу")}` : ""}`);
     r.onmouseleave = () => (tip.hidden = true);
     svg.append(r);
   });
-  const known = (new Date(sn.known_until_utc).getTime() - t0) / 6e4;
-  if (known < 1440) svg.append(svgEl("rect", { x: x(known), y: 6, width: W - x(known), height: 16, fill: "#3a3f47", opacity: 0.85 }));  // not known yet
-  const lab = svgEl("text", { x: 0, y: 33 }); lab.textContent = T("actual alerts in the 24 hours after the forecast", "фактичні тривоги за 24 години після прогнозу"); svg.append(lab);
+  if (known < 1440) svg.append(svgEl("rect", { x: x(known), y: 4, width: W - x(known), height: 18, fill: "#3a3f47", opacity: 0.85 }));  // not known yet
+  for (let k = 1; k < 8; k++) svg.append(svgEl("line", { x1: k * 100, x2: k * 100, y1: 0, y2: H, stroke: V.bg, "stroke-width": 3 }));
+  u.alerts.forEach(([a]) => { if (a > 0) svg.append(svgEl("rect", { x: Math.min(x(a), W - 4), y: 0, width: 4, height: H, fill: V.text })); });  // starts, drawn on top
   box.append(svg);
+  box.append(el("div", { className: "cnote" }, T(`Actual alerts in the 24 hours after the forecast, aligned with the blocks above. White mark = an alert <b>started</b>; <span class="ckm yes">started</span> a new alert started in the block, <span class="ckm on">still on</span> an earlier alert was still running, <span class="ckm no">quiet</span> no alert.`,
+    `Фактичні тривоги за 24 години після прогнозу, вирівняні з блоками вгорі. Біла позначка = тривога <b>почалася</b>; <span class="ckm yes">нова</span> у блоці почалася нова тривога, <span class="ckm on">триває</span> ще тривала попередня, <span class="ckm no">тихо</span> тривоги не було.`)));
   const ok = (v, r) => (v == null ? `<span class="ckm unk">${T("not yet known", "ще невідомо")}</span>` : v >= r[0] && v <= r[1] ? `<span class="ckm yes2">${T("inside the range", "у діапазоні")}</span>` : `<span class="ckm out">${T("outside the range", "поза діапазоном")}</span>`);
   const hU = T("h", "год");
   box.append(el("div", { className: "tiles" }, `
