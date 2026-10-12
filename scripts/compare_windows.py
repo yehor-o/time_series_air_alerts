@@ -15,7 +15,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from validate_models import (BASE_FEATS, PARENT_FEATS, cls_scores, folds, lgb_cls, mean_table)
+from validate_models import (BASE_FEATS, PARENT_FEATS, TEST_START, cls_scores, folds, lgb_cls, mean_table)
 
 P, REP = Path("data/processed"), Path("reports")
 FIRST = pd.Timestamp("2022-04-01", tz="UTC")  # 30 days of warm-up after the first data
@@ -51,7 +51,7 @@ def main():
     po = pd.read_parquet(P / "panel_oblast.parquet")
     pr = pd.read_parquet(P / "panel_raion.parquet")
     last = po.time.max() + pd.Timedelta("1h")
-    test_start = (last - pd.Timedelta("28D")).floor("D")
+    test_start = TEST_START
     codes = {o: i for i, o in enumerate(sorted(po.oblast.unique()))}
     md = ["# Training window: how much history should the models learn from?\n",
           f"Same LightGBM and features; 4 weekly validation folds ({', '.join(f'{a:%b %d}' for a, _ in folds(test_start))}); "

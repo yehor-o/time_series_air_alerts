@@ -20,7 +20,7 @@ import numpy as np
 import pandas as pd
 
 from src.alerts.timing import TIMING_EXTRA, issue_times, timing_rows
-from validate_models import BASE_FEATS, PARENT_FEATS, cls_scores, folds, lgb_cls
+from validate_models import BASE_FEATS, PARENT_FEATS, cls_scores, folds, lgb_cls, TEST_START
 
 P, REP = Path("data/processed"), Path("reports")
 HABITS = ["hod_rate7", "hod_rate14", "night_rate14", "day_rate14"]  # 14-day habits, not "state right now"
@@ -35,7 +35,7 @@ def main():
     for level, hist_days, hl in (("raion", 365, None), ("oblast", 730, 365)):
         pan = pd.read_parquet(P / f"panel_{level}.parquet")
         last_known = pan.time.max() + pd.Timedelta("1h")
-        test_start = (last_known - pd.Timedelta("28D")).floor("D")
+        test_start = TEST_START
         fl = folds(test_start)[-2:]
         start = fl[0][0] - pd.Timedelta(days=hist_days + 30)
         pan = pan[(pan.time >= start) & (pan.time < test_start)]

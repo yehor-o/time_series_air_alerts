@@ -27,7 +27,7 @@ from explore_weak_targets import pinball, recent_duration_quantiles
 from src.alerts.telegram import load_channel
 from src.alerts.telegram_features import add_war_monitor, war_monitor_features
 from src.alerts.timing import TIMING_EXTRA, blend_timing, issue_times, timing_rows
-from validate_models import BASE_FEATS, PARENT_FEATS, cls_scores, lgb_cls, lgb_reg, logreg, lr_matrix, reg_scores
+from validate_models import BASE_FEATS, PARENT_FEATS, cls_scores, lgb_cls, lgb_reg, logreg, lr_matrix, reg_scores, TEST_START, TEST_END
 
 P, REP = Path("data/processed"), Path("reports")
 TUNED = json.loads((REP / "tuning.json").read_text())  # D47
@@ -61,8 +61,9 @@ def main():
     md = ["# Final test results (scored once)\n"]
     for level in ("raion", "oblast"):
         pan = pd.read_parquet(P / f"panel_{level}.parquet")
+        pan = pan[pan.time < TEST_END]  # fixed test end, so newer data never changes the scored period
         last_known = pan.time.max() + pd.Timedelta("1h")
-        test_start = (last_known - pd.Timedelta("28D")).floor("D")
+        test_start = TEST_START
         start = test_start - pd.Timedelta("400D") if level == "raion" else FIRST
         df = pan[pan.time >= start].copy()
         df["oblast_code"] = df.oblast.astype("category")

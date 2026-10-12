@@ -1,6 +1,6 @@
 # Data quality report
 
-Built 2026-10-12 12:21 UTC from Vadimkin `bf0c323c`, JustJimer `7abc556b`, @air_alert_ua posts #1–#338380 (338,360 posts), @war_monitor 46,492 posts.
+Built 2026-10-12 18:07 UTC from Vadimkin `bf0c323c`, JustJimer `7abc556b`, @air_alert_ua posts #1–#338380 (338,360 posts), @war_monitor 46,492 posts.
 
 ## 1. Official rows by message type (D25)
 
@@ -33,16 +33,16 @@ no message found        17
 ## 2. Raion alert table
 
 - Raions: 119 in 24 oblasts (incl. Kyiv City; Luhansk and Crimea excluded).
-- Raw raion events (after disaggregation): 876,741; events whose raion is unknown (dropped): 0.
-- Merged raion alerts: 468,092, from 2022-02-25 to 2026-10-11 09:53 UTC.
-- Merged oblast alerts: 88,538.
+- Raw raion events (after disaggregation): 877,367; events whose raion is unknown (dropped): 0.
+- Merged raion alerts: 468,639, from 2022-02-25 to 2026-10-12 10:46 UTC.
+- Merged oblast alerts: 88,689.
 
 Sources of merged raion alerts:
 
 ```
 sources
 official            447048
-archive              15719
+archive              16266
 volunteer             5119
 archive+official       206
 ```
@@ -56,12 +56,12 @@ year
 2023   90840        39.0
 2024  116032        41.5
 2025   94836        56.2
-2026   87298        48.4
+2026   87845        48.3
 ```
 
 ## 3. Yellow/red (reform period, archive)
 
-- Raion alerts with a level: 15,901; share red: 0.37.
+- Raion alerts with a level: 16,448; share red: 0.37.
 
 ## 4. Holes in the archive and volunteer patches (D26)
 
