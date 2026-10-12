@@ -371,18 +371,25 @@ One LightGBM predicts P(new alert starts) for each 3-hour **Kyiv-time** block of
 
 @war_monitor makes every target slightly worse, so the map uses the plain models. Both are shown on "How good is it?".
 
-**Next candidate:** @kpszsu (Air Force, ~350 posts/day, 81% name an oblast, 21 oblasts; @war_monitor has 31/day and 14 oblasts). It is being downloaded since 2025-09 and should be tested with the same script once complete.
+**@kpszsu tested (2026-10-12, `reports/kpszsu_ablation.md`, same protocol): NOT used.**
 
-## D45. Timing model: model for days 1–2, pattern rule for days 3–7 — Proposed
-`reports/timing_validation.md`, 2 validation weeks. AUC by lead day:
-
-| Lead | Raion: pattern / model | Oblast: pattern / model |
+| Target | Raion without / with | Oblast without / with |
 |---|---|---|
-| day 1 | 0.759 / 0.803 (skill +0.08) | 0.769 / 0.804 (+0.10) |
-| day 2 | 0.765 / 0.782 (+0.03) | 0.778 / 0.792 (+0.04) |
-| day 3–7 | about equal; the model's Brier is worse (skill −0.02…−0.07) | same |
+| 1h skill | 0.186 / 0.187 | 0.214 / 0.190 |
+| 3h skill | 0.326 / 0.296 | 0.366 / 0.332 |
+| 24h count MAE | 1.48 / 1.49 | 1.64 / 1.62 |
+| 24h hours MAE | 1.91 / 1.93 | 2.02 / 2.03 |
 
-**Proposal:** the week-ahead view uses the LightGBM timing model for blocks in the first 48 h and the pattern rule ("share of the last 14 days with a new alert in this clock block") for days 3–7. That's honest and simple.
+Only the oblast 24h count improves slightly; every probability target is the same or worse. Caveat: @kpszsu exists only since 2025-08-31, so the oblast model (full history) sees it as "unknown" for most of its training rows.
+
+## D45. Timing model: blend of model and pattern rule — Accepted (user, 2026-10-12)
+`reports/timing_validation.md` (first look) and `reports/timing_variants.md` (7 variants), 2 validation weeks.
+- Model vs pattern by lead day (AUC): day 1 0.803 vs 0.759 (raion), 0.804 vs 0.769 (oblast); day 2 +0.02/+0.01; days 3–7 about equal, and the model's Brier is worse there.
+- Variants tried: pattern, full model, calendar-only model (no "alerts now" inputs; the user's idea), hybrid A (model < 48 h, then pattern), hybrid B (model < 48 h, then calendar-only), blend model/calendar-only, blend model/pattern.
+- The calendar-only model did NOT help (raion Brier 0.2085 vs 0.1787 for the pattern): without the current-state inputs it ranks no better than the pattern and is worse calibrated. Any variant using it as the far end was worse than the pattern.
+- **Decision:** week-ahead probability = `w × model + (1 − w) × pattern rule`, `w = clip(1 − lead_h / 72, 0, 1)` (fixed schedule, nothing fitted). Overall Brier skill vs pattern: raion +0.016, oblast +0.024; hybrid A was +0.014 / +0.023 (practically a tie, but the blend has no jump at 48 h).
+- Code: `src/alerts/timing.py` (`blend_weight`, `blend_timing`), tests in `tests/test_timing_blend.py`.
+- Caveat: only 2 validation weeks; the blend vs hybrid A difference (≤ 0.0003 Brier) is within noise.
 
 ## D46. @UkraineAlarmSignal — candidate second alert source (2026-10-12)
 - An alert feed: raion/city, **yellow/red level**, all-clears, local typed threats (БПЛА, КАБ).

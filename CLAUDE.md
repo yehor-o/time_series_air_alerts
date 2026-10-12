@@ -32,7 +32,7 @@ The user owns this project and must understand and approve what happens.
 
 ## Git workflow (agreed)
 
-- Work always happens on a dedicated branch (for this session: `claude/quirky-maxwell-imel4t`). Commit and push there freely.
+- Work always happens on a dedicated branch (for this session: `claude/gifted-brahmagupta-15ca07`). Commit and push there freely.
 - When the user says **"merge in main"**: push, open a PR into `main`, merge it.
 - Never push directly to `main` otherwise.
 

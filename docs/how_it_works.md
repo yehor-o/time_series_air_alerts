@@ -51,7 +51,7 @@ Which model is used for what:
 - **New alert within 1h / 3h:** LightGBM classifier ("yes/no" with a probability).
 - **Duration:** three LightGBM *quantile* models, giving the 25th, 50th and 75th percentile. The 25th–75th pair becomes "usually X–Y min".
 - **Count and hours in the next 24 h:** LightGBM regressors, shown as ranges.
-- **Timing (7 days × 8 blocks):** one LightGBM classifier on rows of (forecast time, future block).
+- **Timing (7 days × 8 blocks):** one LightGBM classifier on rows of (forecast time, future block). The week-ahead number is a **blend** with the simple pattern rule: `w × model + (1 − w) × pattern`, where `w` falls in a straight line from 1 (right now) to 0 (3 days ahead). Near-term blocks use what is happening now; by day 3 the forecast is the district's typical habit. Chosen on validation (D45).
 - **Red vs yellow:** the best of: the simple rule "this district's red share in the last 7 days", a logistic regression and LightGBM. Chosen on validation; today the simple rule wins.
 
 ## 5. How much history the models learn from

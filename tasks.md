@@ -14,13 +14,15 @@ Deadline: **Mon 2026-10-12, 23:59 Kyiv**. Done items from earlier phases are sum
 - [x] `docs/how_it_works.md`
 
 ## Next (in order)
-1. [ ] Finish the Telegram downloads (@kpszsu, @UkraineAlarmSignal), resumable
-2. [ ] User decisions: D45 timing hybrid, D15 data in git
+1. [x] Finish the Telegram downloads (@kpszsu, @UkraineAlarmSignal)
+2. [x] D45 decided: blend model/pattern (user, after `reports/timing_variants.md`); implemented in `src/alerts/timing.py`
+2b. [ ] Refresh the committed Telegram snapshots (`data/telegram/*.jsonl.gz`) — waits for the user's OK
 3. [ ] **LightGBM tuning**, time-boxed (~40 min, validation folds only), raion + oblast 3h
-4. [ ] (if time) @kpszsu features → re-run `scripts/compare_telegram.py` with @kpszsu instead of @war_monitor
+4. [x] @kpszsu features: NOT used, worse on probability targets (D44, `reports/kpszsu_ablation.md`)
+
 5. [ ] (if time) @UkraineAlarmSignal cross-check of the archive (holes, Lviv/Volyn, yellow/red)
-6. [ ] Re-check the JustJimer repo for new data; if any → `download_data.py`, rebuild tables/panels
-7. [ ] **Final choice table** → user sign-off
+6. [x] Re-checked: both repos have newer commits; user chose to keep the pins
+7. [ ] **Final choice table** written (`reports/final_choices.md`) → waiting for user sign-off
 8. [ ] **Final test run** 13 Sep – 11 Oct (main models; red: train Sep 6–26, test Sep 27+), hourly predictions for the replay and the history strip
 9. [ ] Retrain on all data → "now" + week-ahead predictions
 10. [ ] `scripts/export_site.py` → `site/data/{meta,now,week,history,replay,metrics}.json` (same format as the sample)
