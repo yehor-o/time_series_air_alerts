@@ -26,7 +26,8 @@ _Last updated: 2026-10-12, ~17:30 Kyiv (session 2)._ Deadline: **today 23:59 Kyi
 - **Data refresh done (D50):** live forecast now 12 Oct 12:00 Kyiv from Vadimkin `d10c80fa` / JustJimer `c5b3bd01` (`data/versions_live.json`); test period fixed in code (`TEST_START`/`TEST_END` in `scripts/validate_models.py`); `data/versions.json` keeps the test pins. @war_monitor had no posts after 11 Oct 10:02 (no new silences ≥2 h in the archive, so no effect).
 - **Forecast check page** done: every published forecast archived in `site/data/archive/`; the 11 Oct 12:00 forecast checked against the next 24 h: district blocks with an alert got 53% on average vs 23% for quiet ones (AUC 0.81; oblasts 0.86); count inside range in 67% of districts, hours in 51%.
 - **Ukrainian version** done: EN | UA switch in the header (`?lang=uk`), every text paired in `site/app.js` via `T(en, uk)`, Ukrainian About page in `index.html` (`#about-uk`). The user should review the Ukrainian wording.
-- **NEXT:** live hourly forecasts via the alerts.in.ua API + GitHub Actions (token in GitHub secret `ALERTS_IN_UA_TOKEN`).
+- **Live system (D51/D52)** built: `scripts/fetch_live.py`, `predict_now.py --train/--predict`, `models/` (trained on data to 12 Oct 12:00 Kyiv), workflows `live.yml` (hourly, commits only `site/data/` to main) and `retrain.yml` (1st/15th, PR).
+- **NEXT:** verify the first live run with the real API; live hourly forecasts via the alerts.in.ua API + GitHub Actions (token in GitHub secret `ALERTS_IN_UA_TOKEN`).
 
 ## Data snapshots (all downloads complete)
 - **In git (D15):** `data/telegram/*.jsonl.gz` and `data/labels/official_labels.parquet`. **Complete** downloads:
