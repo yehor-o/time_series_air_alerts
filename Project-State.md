@@ -15,23 +15,17 @@ _Last updated: 2026-10-12, ~15:10 Kyiv (end of session 1)._ Deadline: **today 23
 - **Website: skeleton done** in `site/` on SAMPLE data (map, click panel, strips, heatmap, replay, quality, about). Real data export not done yet.
 - **NOT done:** final test run (13 Sep – 11 Oct), "now" and week-ahead predictions, `scripts/export_site.py`, Netlify deploy, README.
 
-## Running / unfinished at the end of session 1
-- **Telegram downloads** (resumable: re-run the same command and the scraper continues from the oldest saved post):
-  - `@kpszsu` since 2025-09 → `data/raw/telegram/kpszsu/part{0,1,2}.jsonl`, ranges 85556→71000→56000→41000;
-  - `@UkraineAlarmSignal` since 2026-09-01 → `data/raw/telegram/UkraineAlarmSignal/part{0,1,2}.jsonl`, ranges 653907→633000→612000→580000.
-- **Data snapshots are in git (D15):** `data/telegram/*.jsonl.gz` (all channels; @kpszsu and @UkraineAlarmSignal partial, taken ~15:15 Kyiv) and `data/labels/official_labels.parquet`.
+## Data snapshots (all downloads complete)
+- **In git (D15):** `data/telegram/*.jsonl.gz` and `data/labels/official_labels.parquet`. **Complete** downloads:
+  - @war_monitor: 46,492 posts, 2022-04 → 2026-10-11;
+  - @air_alert_ua: 338,360 posts, 2022-03 → 2026-09-07;
+  - @kpszsu: 44,057 posts, 2025-08-31 → 2026-10-12;
+  - @UkraineAlarmSignal: 45,875 posts, 2026-08-31 → 2026-10-12.
 - **In a fresh container:**
-  1. `bash scripts/restore_data.sh` (puts everything back into `data/raw/`);
+  1. `bash scripts/restore_data.sh`;
   2. `python scripts/download_data.py --pin`;
   3. `PYTHONPATH=. python scripts/build_alert_table.py`;
   4. `PYTHONPATH=. python scripts/build_panel.py --start 2022-03-01`.
-- **Resume the two downloads** (each worker continues below the oldest post already saved in its part file):
-```
-for i in 0 1 2; do K=(85556 71000 56000 41000); python scripts/scrape_telegram.py kpszsu --out data/raw/telegram/kpszsu/part$i.jsonl --start-before ${K[$i]} --stop-id ${K[$((i+1))]} --until 2025-09-01 & done
-for i in 0 1; do U=(653907 633000 612000); python scripts/scrape_telegram.py UkraineAlarmSignal --out data/raw/telegram/UkraineAlarmSignal/part$i.jsonl --start-before ${U[$i]} --stop-id ${U[$((i+1))]} --until 2026-09-01 & done
-wait
-```
-  (UkraineAlarmSignal part2 already reached 2026-09-01.)
 
 ## How to run (from the repo root)
 ```

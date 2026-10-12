@@ -14,7 +14,7 @@ Deadline: **Mon 2026-10-12, 23:59 Kyiv**. Done items from earlier phases are sum
 - [x] `docs/how_it_works.md`
 
 ## Next (in order)
-1. [ ] Finish the Telegram downloads (@kpszsu, @UkraineAlarmSignal), resumable
+1. [x] Telegram downloads @kpszsu (since 2025-09) and @UkraineAlarmSignal (since 2026-09) complete, in git
 2. [ ] User decisions: D45 timing hybrid, D15 data in git
 3. [ ] **LightGBM tuning**, time-boxed (~40 min, validation folds only), raion + oblast 3h
 4. [ ] (if time) @kpszsu features → re-run `scripts/compare_telegram.py` with @kpszsu instead of @war_monitor
