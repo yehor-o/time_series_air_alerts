@@ -5,7 +5,7 @@ next 1 and 3 hours, how long it would last, how many alerts and hours under aler
 when in the coming week alerts are most likely (3-hour Kyiv-time blocks), and whether an alert is likely to be red
 (missiles) or yellow (drones). Results are shown on a static website with a map of Ukraine.
 
-**Live site:** _link added after the Netlify deploy_
+**Live site:** <https://air-alert-forecast-ua.netlify.app> (desktop browser recommended)
 
 > **Disclaimer.** This is a student demo, not an official warning system. Do not use it for safety decisions.
 > Always follow official air raid alerts.

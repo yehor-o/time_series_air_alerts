@@ -29,7 +29,7 @@ Deadline: **Mon 2026-10-12, 23:59 Kyiv**. Done items from earlier phases are sum
 11. [x] Site: real data + merged "How good is it?" page with model-comparison charts (screenshots in `reports/screens/`)
 12. [ ] Netlify deploy (with the user; `netlify.toml` publishes `site/`)
 13. [x] README written (live-site link to add after Netlify); docs/how_it_works.md and About page updated with the test results
-14. [ ] Merge into main, then Netlify (option A, with the user; site name air-alert-forecast-ua), then add the URL to README/About
+14. [x] Merged into main (PR #4); deployed on Netlify: https://air-alert-forecast-ua.netlify.app (auto-deploys from main); URL in README
 
 ## Later / optional
 - Artillery as a separate small product for Nikopol / Marhanets (D39 option b)
