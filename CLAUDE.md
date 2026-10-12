@@ -34,7 +34,7 @@ The user owns this project and must understand and approve what happens.
 
 ## Git workflow (agreed)
 
-- Work always happens on a dedicated branch (for this session: `claude/gifted-brahmagupta-15ca07`). Commit and push there freely.
+- Work always happens on a dedicated branch (for this session: `claude/great-brown-p08vo2`). Commit and push there freely.
 - When the user says **"merge in main"**: push, open a PR into `main`, merge it.
 - Never push directly to `main` otherwise. The only exception (D52): the hourly `live-forecast` workflow commits `site/data/` to `main`.
 

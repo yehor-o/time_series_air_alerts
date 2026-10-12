@@ -14,7 +14,8 @@ const RAMP = ["#0d366b", "#104281", "#184f95", "#1c5cab", "#256abf", "#2a78d6", 
 })();
 const cv = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
 const V = { bg: cv("--bg"), surface: cv("--surface"), line: cv("--line"), text: cv("--text-primary"), ink: cv("--text-secondary"), muted: cv("--text-muted") };
-const COL = { red: "#d03b3b", yellow: "#f2c230", unknown: V.muted, nodata: cv("--nodata"), permanent: cv("--permanent") };
+const COL = { red: "#d03b3b", yellow: "#f2c230", unknown: V.muted, nodata: cv("--nodata"), permanent: cv("--permanent"), on: "#ff4b45" };
+const CONT_H = 24;  // an alert running at least this long is shown as "continuous": a new-alert forecast means nothing there
 const KYIV = "Europe/Kyiv";
 // language: ?lang=uk|en in the URL, else the remembered choice, else English. T(en, uk) picks the text.
 const LANG = (() => {
@@ -56,13 +57,64 @@ async function load() {
   names.forEach((n, i) => (S.D[n] = rest[i]));
   S.ukName = {};  // Ukrainian district names from the map file
   geo.features.forEach((f) => { const p = f.properties; if (p.id) S.ukName[p.id] = p.id.startsWith("м. ") ? p.id.split("|")[0] : `${p.name_uk} район`; });
+  S.tF = new Date(S.D.meta.forecast_time_utc);                        // the hourly forecast (1 h, 3 h, duration, 24 h, red)
+  S.tW = new Date(S.D.meta.week_time_utc || S.D.meta.forecast_time_utc);  // the 3-hour blocks (made at 00:00 / 12:00 Kyiv)
+  buildInfo();
   applyStaticI18n();
   if (S.D.meta.sample) $("#sample-banner").hidden = false;
-  $("#asof").textContent = T(`Forecast made at ${fDayTime.format(new Date(S.D.meta.forecast_time_utc))} (Kyiv time) · data up to ${fDayTime.format(new Date(S.D.meta.data_until_utc))}`,
-    `Прогноз зроблено ${fDayTime.format(new Date(S.D.meta.forecast_time_utc))} (за Києвом) · дані до ${fDayTime.format(new Date(S.D.meta.data_until_utc))}`);
-  if (S.D.meta.week_time_utc && S.D.meta.week_time_utc !== S.D.meta.forecast_time_utc)
-    $("#asof").textContent += T(` · week view from ${fHour.format(new Date(S.D.meta.week_time_utc))}`, ` · тижневий прогноз від ${fHour.format(new Date(S.D.meta.week_time_utc))}`);
-  initTabs(); initMap(); initControls(); renderLegend("#legend"); renderTopRisk(); initReplay(); renderQuality(); initCheck();
+  $("#asof").textContent = T(`Forecast made at ${fDayTime.format(S.tF)} (Kyiv time) · data up to ${fDayTime.format(new Date(S.D.meta.data_until_utc))}`,
+    `Прогноз зроблено ${fDayTime.format(S.tF)} (за Києвом) · дані до ${fDayTime.format(new Date(S.D.meta.data_until_utc))}`);
+  if (+S.tW !== +S.tF) $("#asof").textContent += T(` · 3-hour blocks from ${fHour.format(S.tW)}`, ` · 3-годинні блоки від ${fHour.format(S.tW)}`);
+  const trained = S.D.meta.models_trained_utc ? fDayTime.format(new Date(S.D.meta.models_trained_utc)) : "–";
+  document.querySelectorAll(".about-trained").forEach((e) => (e.textContent = trained));
+  initTabs(); initMap(); initControls(); renderLegend("#legend", null, true); renderTopRisk(); initReplay(); renderQuality(); initCheck();
+  // the rolling log of the site's own hourly forecasts: tells which hours of the history strip have no saved forecast.
+  // Loaded after the page is drawn (it grows to a few hundred kB); an open panel redraws its history strip when it arrives.
+  fetch("data/p3_log.json").then((r) => r.json()).then((j) => { S.D.p3log = j; if (S.selected && $("#hstrip")) drawPanelHistory(); }).catch(() => {});
+}
+
+// ---------- per unit: the alert running at the forecast moment, and the evidence behind the red share ----------
+// Both come from history.json (the 7 days before the forecast moment t, same t as now.json). An alert still running at t
+// is drawn up to t, so "end == t" means "still active"; its real end is not known and not used.
+function buildInfo() {
+  const H = S.D.history, end = H.hours * 60, h0 = new Date(H.start_utc).getTime();
+  S.info = {}; S.nat = {};
+  for (const lv of ["raion", "oblast"]) {
+    S.info[lv] = {};
+    let red = 0, all = 0;
+    for (const [id, n] of Object.entries(S.D.now[lv])) {
+      const al = H[lv]?.[id]?.alerts || [];
+      const run = al.find(([, e]) => e >= end);
+      const active = n.active != null ? n.active > 0 : !!run;
+      // alerts that started inside the 7 days (s > 0; s = 0 means it started earlier) with a known level: the red-share rule's input
+      const lv7 = al.filter(([s, , l]) => s > 0 && (l === "red" || l === "yellow"));
+      const nRed = lv7.filter(([, , l]) => l === "red").length;
+      red += nRed; all += lv7.length;
+      S.info[lv][id] = {
+        active,
+        since: active && run && run[0] > 0 ? new Date(h0 + run[0] * 6e4) : null,
+        week: !!(active && run && run[0] === 0),  // started before the 7-day window: running for 7+ days
+        continuous: !!(active && run && end - run[0] >= CONT_H * 60),
+        nRed, nLvl: lv7.length,
+      };
+    }
+    S.nat[lv] = all ? red / all : null;  // national share over the same 7 days (the rule's fallback)
+  }
+}
+const info = (id, lv = S.level) => S.info?.[lv]?.[id] || {};
+const sameDay = (d) => fDay.format(d) === fDay.format(S.tF);
+function onTxt(i) {  // "Under alert since 21:14"
+  if (!i.since) return T("Under alert now", "Зараз триває тривога");
+  const at = sameDay(i.since) ? fHour.format(i.since) : fDayTime.format(i.since);
+  return T(`Under alert since ${at}`, `Тривога триває з ${at}`);
+}
+function contTxt(i) {  // "Continuous alert for 7+ days"
+  if (i.week) return T("Continuous alert for 7+ days", "Безперервна тривога понад 7 днів");
+  return T(`Continuous alert since ${fDayTime.format(i.since)}`, `Безперервна тривога з ${fDayTime.format(i.since)}`);
+}
+function onShort(i) {  // short forms for the Major-cities card
+  if (i.continuous) return i.week ? T("alert for 7+ days", "тривога понад 7 днів") : T(`alert since ${fDay.format(i.since)}`, `тривога з ${fDay.format(i.since)}`);
+  return i.since ? T(`alert since ${fHour.format(i.since)}`, `тривога з ${fHour.format(i.since)}`) : T("under alert now", "зараз тривога");
 }
 
 // ---------- static texts (index.html) in Ukrainian; the About page has its own Ukrainian template ----------
@@ -110,8 +162,9 @@ function horizonLabel() {
   if (S.h === "p1") return T("new alert within the next hour", "нової тривоги протягом години");
   if (S.h === "p3") return T("new alert within the next 3 hours", "нової тривоги протягом 3 годин");
   const s = new Date(S.D.week.block_starts_utc[S.block]);
-  return T(`new alert in ${fDay.format(s)} ${fHour.format(s)}–${fHour.format(new Date(+s + 3 * 3600e3))}`,
-    `нової тривоги ${fDay.format(s)} ${fHour.format(s)}–${fHour.format(new Date(+s + 3 * 3600e3))}`);
+  const late = s < S.tF ? T(" (block already started)", " (блок уже почався)") : "";
+  return T(`new alert in ${fDay.format(s)} ${fHour.format(s)}–${fHour.format(new Date(+s + 3 * 3600e3))}${late}`,
+    `нової тривоги ${fDay.format(s)} ${fHour.format(s)}–${fHour.format(new Date(+s + 3 * 3600e3))}${late}`);
 }
 
 // ---------- tabs ----------
@@ -128,7 +181,7 @@ function initTabs() {
 function styleFor(props, value, selected) {
   if (props.status === "permanent") return { fillColor: COL.permanent, fillOpacity: 1, color: "#6b3a45", weight: 0.6 };
   if (props.status !== "forecast") return { fillColor: COL.nodata, fillOpacity: 1, color: "#555b66", weight: 0.6 };
-  const fill = rampColor(value);
+  const fill = info(unitKey(props)).continuous ? COL.permanent : rampColor(value);  // continuous alert: no forecast colour
   const oblastView = S.level === "oblast";
   return { fillColor: fill, fillOpacity: 1, color: selected ? V.text : (oblastView ? fill : V.bg),
     weight: selected ? 2.2 : (oblastView ? 0.8 : 0.6) };
@@ -144,7 +197,18 @@ function initMap() {
       lyr.on("click", () => { if (f.properties.status === "forecast") select(unitKey(f.properties)); });
     },
   }).addTo(S.map);
+  // "under alert now": red stripes drawn over the forecast colour by a second, non-clickable copy of the shapes
+  S.over = new Map();
+  S.olayer = L.geoJSON(S.geo, { interactive: false, style: () => ({ stroke: false, fillColor: "url(#on-hatch)", fillOpacity: 0 }) }).addTo(S.map);
+  S.olayer.eachLayer((l) => S.over.set(l.feature, l));
+  restyle();
   S.map.fitBounds(S.layer.getBounds(), { paddingTopLeft: [0, 60] });
+  const svg = S.map.getPanes().overlayPane.querySelector("svg");  // exists only once the map has a view
+  if (svg) {
+    const defs = svgEl("defs", {}), pat = svgEl("pattern", { id: "on-hatch", patternUnits: "userSpaceOnUse", width: 7, height: 7, patternTransform: "rotate(45)" });
+    pat.append(svgEl("rect", { x: 0, y: 0, width: 2.4, height: 7, fill: COL.on }));
+    defs.append(pat); svg.prepend(defs);
+  }
 }
 // Major cities: the district (or oblast) that contains each city; forecasts are per district.
 const CITIES = [
@@ -160,33 +224,46 @@ function renderTopRisk() {
   box.innerHTML = `<div class="tt"><span>${T("Major cities: chance of a new alert", "Великі міста: ймовірність нової тривоги")}</span><span class="cols"><i>1 ${T("h", "год")}</i><i>3 ${T("h", "год")}</i></span></div>` +
     CITIES.filter((c) => n[c[lv]]).map((c) => {
       const id = c[lv], sub = id.startsWith("м. ") ? "" : `<small>${unitName(id, lv).split(", ")[0]}</small>`;
-      const vals = n[id].active ? `<span class="now-on">${T("under alert now", "зараз тривога")}</span>` : `<b>${pct(n[id].p1)}</b><b>${pct(n[id].p3)}</b>`;
+      const vals = info(id, lv).active ? `<span class="now-on">${onShort(info(id, lv))}</span>` : `<b>${pct(n[id].p1)}</b><b>${pct(n[id].p3)}</b>`;
       return `<button data-id="${id}"><span>${T(c.en, c.uk)}${sub}</span><span class="cols">${vals}</span></button>`;
     }).join("");
   box.querySelectorAll("button").forEach((b) => (b.onclick = () => select(b.dataset.id)));
 }
 function restyle() {
+  const sel = [];
   S.layer.eachLayer((l) => {
     const p = l.feature.properties;
-    const sel = p.status === "forecast" && S.selected && unitKey(p) === S.selected;
-    l.setStyle(styleFor(p, valueFor(p), sel));
-    if (sel) l.bringToFront();
+    const s = p.status === "forecast" && S.selected && unitKey(p) === S.selected;
+    l.setStyle(styleFor(p, valueFor(p), s));
+    // stripes: always for a continuous alert (no forecast there); for a short one only in the 1 h / 3 h views ("now")
+    const i = p.status === "forecast" ? info(unitKey(p)) : {};
+    S.over?.get(l.feature)?.setStyle({ fillOpacity: i.continuous ? 0.9 : i.active && S.h !== "block" ? 0.75 : 0 });
+    if (s) { l.bringToFront(); sel.push(l); }
   });
+  sel.forEach((l) => S.over?.get(l.feature)?.bringToFront());  // keep the stripes above the selected outline's fill
 }
+const hatch = (base) => `background:repeating-linear-gradient(135deg,${COL.on} 0 2px,transparent 2px 5px),${base}`;
 function showHover(e, props) {
   const h = $("#hover");
   const nm = UK ? props.name_uk : props.name;
   if (props.status === "permanent") h.innerHTML = `<b>${nm}</b><br>${T("Permanent alert, no forecast", "Постійна тривога, прогнозу немає")}`;
   else if (props.status !== "forecast") h.innerHTML = `<b>${nm}</b><br>${T("No forecast", "Прогнозу немає")}`;
-  else h.innerHTML = `<b>${unitName(unitKey(props))}</b><br>${T(`${pct(valueFor(props))} chance of a ${horizonLabel()}`, `Ймовірність ${horizonLabel()}: ${pct(valueFor(props))}`)}`;
+  else {
+    const i = info(unitKey(props)), name = `<b>${unitName(unitKey(props))}</b>`;
+    if (i.continuous) h.innerHTML = `${name}<br><span class="now-on">${contTxt(i)}</span><br>${T("No forecast: a new alert cannot start while this one runs.", "Прогнозу немає: нова тривога не може початися, поки триває ця.")}`;
+    else h.innerHTML = `${name}${i.active ? `<br><span class="now-on">${onTxt(i)}</span>` : ""}<br>${T(`${pct(valueFor(props))} chance of a ${horizonLabel()}`, `Ймовірність ${horizonLabel()}: ${pct(valueFor(props))}`)}${i.active ? T(", after the current alert ends", ", після завершення поточної") : ""}`;
+  }
   const pt = e.containerPoint;
   h.style.left = `${pt.x + 14}px`; h.style.top = `${pt.y + 10}px`; h.hidden = false;
 }
-function renderLegend(sel, title) {
+function renderLegend(sel, title, live = false) {
   const steps = RAMP.map((c) => `<span style="flex:1;background:${c}"></span>`).join("");
+  // live: the main map's keys; "block" = the time-block view, where short alerts are not striped
+  const on = live ? `${live !== "block" ? `<span><i class="sw" style="${hatch(RAMP[6])}"></i>${T("Under alert now", "Зараз тривога")}</span>` : ""}
+    <span><i class="sw" style="${hatch(COL.permanent)}"></i>${T(`Continuous alert (${CONT_H} h+)`, `Безперервна тривога (${CONT_H}+ год)`)}</span>` : "";
   $(sel).innerHTML = `<div>${title || T("Chance of a new alert", "Ймовірність нової тривоги")}</div><div class="bar">${steps}</div>
     <div class="ticks"><span>0%</span><span>25%</span><span>50%</span><span>75%</span><span>100%</span></div>
-    <div class="keys"><span><i class="sw" style="background:${COL.permanent}"></i>${T("Permanent alert", "Постійна тривога")}</span>
+    <div class="keys">${on}<span><i class="sw" style="background:${COL.permanent}"></i>${T("Permanent alert", "Постійна тривога")}</span>
     <span><i class="sw" style="background:${COL.nodata}"></i>${T("No forecast", "Прогнозу немає")}</span></div>`;
 }
 
@@ -198,66 +275,120 @@ function initControls() {
   });
   document.querySelectorAll("[data-h]").forEach((b) => b.onclick = () => {
     document.querySelectorAll("[data-h]").forEach((x) => x.classList.toggle("on", x === b));
-    S.h = b.dataset.h; $("#blockpicker").hidden = S.h !== "block"; restyle();
+    S.h = b.dataset.h; $("#blockpicker").hidden = S.h !== "block"; restyle(); renderLegend("#legend", null, S.h === "block" ? "block" : true);
   });
   const starts = S.D.week.block_starts_utc.map((s) => new Date(s));
   const days = [...new Set(starts.map((d) => fDay.format(d)))];
   const dp = $("#daypick"), bp = $("#blockpick");
+  const late = T("Started before this forecast: for the next hours, the 1 h / 3 h forecast is newer",
+    "Почався до цього прогнозу: на найближчі години новіший прогноз на 1 / 3 год");
   const drawBlocks = (day) => {
     bp.innerHTML = "";
     starts.forEach((d, i) => {
       if (fDay.format(d) !== day) return;
-      const b = el("button", { className: i === S.block ? "on" : "" }, `${fHour.format(d)}`);
+      const b = el("button", { className: (i === S.block ? "on" : "") + (d < S.tF ? " past" : "") }, `${fHour.format(d)}`);
+      if (d < S.tF) b.title = late;
       b.onclick = () => { S.block = i; drawBlocks(day); restyle(); };
       bp.append(b);
     });
   };
-  days.forEach((day, k) => {
-    const b = el("button", { className: k === 0 ? "on" : "" }, day);
+  S.block = Math.max(0, starts.findIndex((d) => d >= S.tF));  // open on the first block that has not started yet
+  const day0 = fDay.format(starts[S.block]);
+  days.forEach((day) => {
+    const b = el("button", { className: day === day0 ? "on" : "" }, day);
     b.onclick = () => {
       dp.querySelectorAll("button").forEach((x) => x.classList.toggle("on", x === b));
-      S.block = starts.findIndex((d) => fDay.format(d) === day); drawBlocks(day); restyle();
+      const k = starts.findIndex((d) => fDay.format(d) === day && d >= S.tF);
+      S.block = k >= 0 ? k : starts.findIndex((d) => fDay.format(d) === day); drawBlocks(day); restyle();
     };
     dp.append(b);
   });
-  drawBlocks(days[0]);
+  drawBlocks(day0);
 }
 
 // ---------- side panel ----------
 function select(id) { S.selected = id; restyle(); renderPanel(); }
+// red tile: the rule is "share of red among this unit's alerts in the last 7 days" (D35); show the evidence it rests on,
+// and never a bare 0% / 100% from a handful of alerts
+function redTile(n, i, lv) {
+  const chip = T(`<span class="chip red">red</span>`, `<span class="chip red">червона</span>`);
+  if (i.nLvl == null) return [pct(n.red), T(`chance it is ${chip}`, `шанс, що ${chip}`)];
+  if (!i.nLvl) return [pct(n.red), T(`chance it is ${chip} · no alerts here in 7 days, so the national share`, `шанс, що ${chip} · тут не було тривог за 7 днів, тож частка по країні`)];
+  if (i.nRed === 0 || i.nRed === i.nLvl) return [`${i.nRed} ${T("of", "з")} ${i.nLvl}`,
+    T(`alerts here in 7 days were <span class="chip red">red</span>; nationally ${pct(S.nat[lv])}`, `тривог тут за 7 днів були <span class="chip red">червоними</span>; по країні ${pct(S.nat[lv])}`)];
+  return [pct(n.red), T(`chance it is ${chip} · ${i.nRed} of ${i.nLvl} alerts here in 7 days`, `шанс, що ${chip} · ${i.nRed} з ${i.nLvl} тривог тут за 7 днів`)];
+}
 function renderPanel() {
   const P = $("#panel");
   if (!S.selected) { P.innerHTML = `<div class="empty">${T("Click a district or oblast on the map to see its forecast.", "Натисніть на район чи область на мапі, щоб побачити прогноз.")}</div>`; return; }
-  const id = S.selected, lv = S.level, n = S.D.now[lv][id];
-  const made = fDayTime.format(new Date(S.D.meta.forecast_time_utc));
-  P.innerHTML = `<h2>${unitName(id)}</h2><div class="muted">${T(`${lv === "raion" ? "District" : "Oblast"} forecast, made ${made} Kyiv time`, `Прогноз для ${lv === "raion" ? "району" : "області"}, зроблено ${made} за Києвом`)}</div>
-    ${n.active ? `<div class="now-on big">${T("Under alert right now: a new alert can only start after this one ends.", "Зараз триває тривога: нова може початися лише після її завершення.")}</div>` : ""}
+  const id = S.selected, lv = S.level, n = S.D.now[lv][id], i = info(id, lv);
+  const made = fDayTime.format(S.tF), unitW = lv === "raion" ? T("district", "районі") : T("oblast", "області");
+  const head = `<h2>${unitName(id)}</h2><div class="muted">${T(`${lv === "raion" ? "District" : "Oblast"} forecast, made ${made} Kyiv time`, `Прогноз для ${lv === "raion" ? "району" : "області"}, зроблено ${made} за Києвом`)}</div>`;
+  const hist = `<h3>${T("Last 7 days: actual alerts vs forecast", "Останні 7 днів: фактичні тривоги і прогноз")}</h3><div id="hstrip"></div>`;
+  if (i.continuous) {  // a new-alert forecast means nothing while one alert runs for days: show none
+    P.innerHTML = `${head}<div class="now-on big">${contTxt(i)}</div>
+      <p class="note">${T(`One alert has been running here for ${CONT_H} hours or more. This can happen when a front-line or border community inside the ${unitW} keeps the alert on. A new alert cannot start while it runs, so no forecast is shown.`,
+        `Одна тривога триває тут ${CONT_H} годин або довше. Так буває, коли прифронтова чи прикордонна громада в ${unitW} тримає тривогу. Поки вона триває, нова тривога не може початися, тому прогноз не показано.`)}</p>${hist}`;
+    drawPanelHistory();
+    return;
+  }
+  const [rv, rk] = redTile(n, i, lv);
+  const older = +S.tW !== +S.tF, wMade = fHour.format(S.tW);
+  P.innerHTML = `${head}
+    ${i.active ? `<div class="now-on big">${onTxt(i)} ${T("(Kyiv time). The chances below are for a new alert after this one ends.", "(за Києвом). Ймовірності нижче стосуються нової тривоги після завершення цієї.")}</div>` : ""}
+    <h3>${T("Right now · updated every hour", "Зараз · оновлюється щогодини")}</h3>
     <div class="hero"><div class="hero-v">${pct(n.p3)}</div>
       <div class="hero-k">${T("chance of a new alert in the next 3 hours", "ймовірність нової тривоги протягом наступних 3 годин")}</div>
       <div class="hero-bar"><span style="width:${Math.round(n.p3 * 100)}%"></span></div></div>
     <div class="tiles three">
       <div class="tile"><div class="v">${pct(n.p1)}</div><div class="k">${T("within 1 hour", "протягом 1 години")}</div></div>
       <div class="tile"><div class="v">${n.dur[0]}–${n.dur[1]} ${T("min", "хв")}</div><div class="k">${T("typical duration", "типова тривалість")}</div></div>
-      <div class="tile"><div class="v">${pct(n.red)}</div><div class="k">${T(`chance it is <span class="chip red">red</span>`, `шанс, що <span class="chip red">червона</span>`)}</div></div>
+      <div class="tile" title="${T("Rule: the share of red among this place's alerts in the last 7 days. With only a few alerts it is a rough guide.", "Правило: частка червоних серед тривог тут за останні 7 днів. Якщо тривог мало, це лише грубий орієнтир.")}"><div class="v">${rv}</div><div class="k">${rk}</div></div>
     </div>
-    <h3>${T("Next 24 hours (Kyiv time)", "Наступні 24 години (за Києвом)")}</h3><div class="cells" id="next24"></div>
-    <div class="muted" style="margin-top:6px">${T(`About <b>${n.cnt[0]}–${n.cnt[1]}</b> alerts and <b>${n.hrs[0]}–${n.hrs[1]} h</b> under alert expected.`, `Очікується приблизно <b>${n.cnt[0]}–${n.cnt[1]}</b> тривог і <b>${n.hrs[0]}–${n.hrs[1]} год</b> під тривогою.`)}</div>
+    <div class="muted" style="margin-top:8px">${T(`Next 24 hours (from ${fHour.format(S.tF)}): about <b>${n.cnt[0]}–${n.cnt[1]}</b> alerts and <b>${n.hrs[0]}–${n.hrs[1]} h</b> under alert expected.`, `Наступні 24 години (від ${fHour.format(S.tF)}): очікується приблизно <b>${n.cnt[0]}–${n.cnt[1]}</b> тривог і <b>${n.hrs[0]}–${n.hrs[1]} год</b> під тривогою.`)}</div>
+    <h3>${T("Outlook: next 24 hours by 3-hour block (Kyiv time)", "Огляд: наступні 24 години по 3-годинних блоках (за Києвом)")}</h3>
+    <div class="muted note">${older
+      ? T(`Made at ${wMade}, refreshed at 00:00 and 12:00, so it is older than the hourly numbers above. In the dashed blocks, which overlap the next 3 hours, the hourly forecast is the better guide.`,
+        `Зроблено о ${wMade}, оновлюється о 00:00 і 12:00, тож він старіший за щогодинні числа вгорі. У блоках із пунктиром, що перетинаються з наступними 3 годинами, кращий орієнтир — щогодинний прогноз.`)
+      : T(`Made at ${wMade} together with the numbers above; refreshed at 00:00 and 12:00.`, `Зроблено о ${wMade} разом із числами вгорі; оновлюється о 00:00 і 12:00.`)}</div>
+    <div class="cells" id="next24"></div>
     <h3>${T("This week: chance of a new alert per 3-hour block", "Цей тиждень: ймовірність нової тривоги в кожному 3-годинному блоці")}</h3><div id="heat"></div>
     <h3>${T("Week-ahead strip", "Смуга на тиждень")}</h3><div id="wstrip"></div>
-    <h3>${T("Last 7 days: actual alerts vs forecast", "Останні 7 днів: фактичні тривоги і прогноз")}</h3><div id="hstrip"></div>`;
+    ${hist}`;
   const starts = S.D.week.block_starts_utc.map((s) => new Date(s));
-  const wk = S.D.week[lv][id];
-  const c24 = $("#next24");
-  n.next24.forEach((p, i) => c24.append(el("div", { className: "cell", title: T(`${pct(p)} chance of a new alert`, `${pct(p)} ймовірність нової тривоги`) },
-    `<span class="t">${fHour.format(starts[i])}</span>${pct(p)}`)));
-  c24.querySelectorAll(".cell").forEach((c, i) => { c.style.background = rampColor(n.next24[i]); c.style.color = textOn(n.next24[i]); });
+  const wk = S.D.week[lv][id], until3 = +S.tF + 3 * 3600e3, c24 = $("#next24");
+  // the next 8 blocks that have not started yet; a block that started before the forecast moment is left out
+  starts.map((d, k) => k).filter((k) => starts[k] >= S.tF).slice(0, 8).forEach((k) => {
+    const d = starts[k], p = wk[k], ov = older && +d < until3;
+    const c = el("div", { className: "cell" + (ov ? " older" : ""), title: ov
+      ? T(`${pct(p)} chance of a new alert (outlook made at ${wMade}). This block overlaps the next 3 hours: the hourly forecast above is newer.`, `${pct(p)} ймовірність нової тривоги (огляд зроблено о ${wMade}). Цей блок перетинається з наступними 3 годинами: щогодинний прогноз вгорі новіший.`)
+      : T(`${pct(p)} chance of a new alert`, `${pct(p)} ймовірність нової тривоги`) }, `<span class="t">${fHour.format(d)}</span>${pct(p)}`);
+    c.style.background = rampColor(p); c.style.color = textOn(p);
+    c24.append(c);
+  });
   drawHeat($("#heat"), starts, wk);
   drawWeekStrip($("#wstrip"), starts, wk);
-  drawHistory($("#hstrip"), S.D.history, S.D.history[lv][id]);
+  drawPanelHistory();
+}
+function drawPanelHistory() {
+  const host = $("#hstrip"); if (!host) return;
+  host.innerHTML = "";
+  drawHistory(host, S.D.history, S.D.history[S.level][S.selected], missingHours(S.level, S.selected));
+}
+// Hours of the history strip without a saved forecast (no hourly run happened then). The export writes 0 for them, so they
+// are found from the rolling log of the site's own forecasts: hours before the log starts come from a complete earlier
+// export; from the log's first hour on, an hour with no log entry had no forecast. null = not known (log not loaded).
+function missingHours(lv, id) {
+  const L = S.D.p3log?.[lv], H = S.D.history;
+  if (!L || !Object.keys(L).length) return null;
+  const saved = new Map(Object.entries(L).map(([k, v]) => [new Date(k).getTime(), v]));
+  const first = Math.min(...saved.keys()), t0 = new Date(H.start_utc).getTime();
+  return H[lv][id].pred.map((_, h) => { const ms = t0 + h * 3600e3; return ms >= first && saved.get(ms)?.[id] == null; });
 }
 
 const tip = el("div", { className: "strip-tip" }); tip.hidden = true; document.body.append(tip);
 function showTip(e, html) { tip.innerHTML = html; tip.style.left = `${e.clientX + 12}px`; tip.style.top = `${e.clientY + 10}px`; tip.hidden = false; }
+const lateTip = () => `<br><i>${T("Started before this forecast: the hourly 1 h / 3 h forecast is newer", "Почався до цього прогнозу: щогодинний прогноз на 1 / 3 год новіший")}</i>`;
 
 function drawHeat(host, starts, wk) {
   const days = [...new Set(starts.map((d) => fDay.format(d)))];
@@ -267,10 +398,10 @@ function drawHeat(host, starts, wk) {
   blocks.forEach((b, j) => { const t = svgEl("text", { x: left + j * (cw + 2) + cw / 2, y: 11, "text-anchor": "middle" }); t.textContent = `${b}:00`; svg.append(t); });
   days.forEach((d, r) => { const t = svgEl("text", { x: 0, y: top + r * (ch + 2) + 14 }); t.textContent = d; svg.append(t); });
   starts.forEach((s, i) => {
-    const r = days.indexOf(fDay.format(s));
+    const r = days.indexOf(fDay.format(s)), late = s < S.tF;
     const j = Math.floor(Number(fmt({ hour: "2-digit", hourCycle: "h23" }).format(s)) / 3);
-    const rect = svgEl("rect", { x: left + j * (cw + 2), y: top + r * (ch + 2), width: cw, height: ch, rx: 3, fill: rampColor(wk[i]) });
-    rect.onmousemove = (e) => showTip(e, `${fDay.format(s)} ${fHour.format(s)}–${fHour.format(new Date(+s + 3 * 3600e3))}<br><b>${pct(wk[i])}</b> ${T("chance of a new alert", "ймовірність нової тривоги")}`);
+    const rect = svgEl("rect", { x: left + j * (cw + 2), y: top + r * (ch + 2), width: cw, height: ch, rx: 3, fill: rampColor(wk[i]), "fill-opacity": late ? 0.3 : 1 });
+    rect.onmousemove = (e) => showTip(e, `${fDay.format(s)} ${fHour.format(s)}–${fHour.format(new Date(+s + 3 * 3600e3))}<br><b>${pct(wk[i])}</b> ${T("chance of a new alert", "ймовірність нової тривоги")}${late ? lateTip() : ""}`);
     rect.onmouseleave = () => (tip.hidden = true);
     svg.append(rect);
   });
@@ -282,9 +413,9 @@ function drawWeekStrip(host, starts, wk) {
   const svg = svgEl("svg", { width: W, height: H });
   svg.append(svgEl("line", { x1: 0, x2: W, y1: base, y2: base, stroke: V.line }));
   starts.forEach((s, i) => {
-    const h = Math.max(1, wk[i] * 44);
-    const r = svgEl("rect", { x: i * bw + 0.5, y: base - h, width: bw - 1, height: h, rx: 1.5, fill: rampColor(Math.max(wk[i], 0.35)) });
-    r.onmousemove = (e) => showTip(e, `${fDay.format(s)} ${fHour.format(s)}<br><b>${pct(wk[i])}</b> ${T("chance of a new alert", "ймовірність нової тривоги")}`);
+    const h = Math.max(1, wk[i] * 44), late = s < S.tF;
+    const r = svgEl("rect", { x: i * bw + 0.5, y: base - h, width: bw - 1, height: h, rx: 1.5, fill: rampColor(Math.max(wk[i], 0.35)), "fill-opacity": late ? 0.3 : 1 });
+    r.onmousemove = (e) => showTip(e, `${fDay.format(s)} ${fHour.format(s)}<br><b>${pct(wk[i])}</b> ${T("chance of a new alert", "ймовірність нової тривоги")}${late ? lateTip() : ""}`);
     r.onmouseleave = () => (tip.hidden = true);
     svg.append(r);
     if (fHour.format(s) === "00:00") { const t = svgEl("text", { x: i * bw, y: H - 4 }); t.textContent = fShort.format(s); svg.append(t); }
@@ -292,7 +423,7 @@ function drawWeekStrip(host, starts, wk) {
   host.append(svg);
 }
 
-function drawHistory(host, H, u) {
+function drawHistory(host, H, u, miss) {
   const W = 400, hours = H.hours, t0 = new Date(H.start_utc).getTime(), x = (m) => (m / (hours * 60)) * W;
   const svg = svgEl("svg", { width: W, height: 110 });
   const lab = (txt, y) => { const t = svgEl("text", { x: 0, y }); t.textContent = txt; svg.append(t); };
@@ -303,10 +434,20 @@ function drawHistory(host, H, u) {
     r.onmouseleave = () => (tip.hidden = true);
     svg.append(r);
   });
-  const base = 92, top = 52;
-  const pts = u.pred.map((p, h) => `${(h + 0.5) / hours * W},${base - (p / 100) * (base - top)}`).join(" ");
-  svg.append(svgEl("polygon", { points: `0,${base} ${pts} ${W},${base}`, fill: "#3987e5", "fill-opacity": 0.25 }));
-  svg.append(svgEl("polyline", { points: pts, fill: "none", stroke: "#5598e7", "stroke-width": 2 }));
+  const base = 92, top = 52, gap = (h) => !!(miss && miss[h]);
+  const xh = (h) => ((h + 0.5) / hours) * W, y = (p) => base - (p / 100) * (base - top);
+  // the forecast line is drawn in pieces; hours without a saved forecast are a grey band, not a fake 0%
+  for (let h = 0; h < hours;) {
+    let k = h; while (k < hours && gap(k) === gap(h)) k++;
+    const xa = (h / hours) * W, xb = (k / hours) * W;
+    if (gap(h)) svg.append(svgEl("rect", { x: xa, y: top, width: xb - xa, height: base - top, fill: V.muted, "fill-opacity": 0.22 }));
+    else {
+      const pts = Array.from({ length: k - h }, (_, j) => `${xh(h + j)},${y(u.pred[h + j])}`).join(" ");
+      svg.append(svgEl("polygon", { points: `${xa},${base} ${pts} ${xb},${base}`, fill: "#3987e5", "fill-opacity": 0.25 }));
+      svg.append(svgEl("polyline", { points: pts, fill: "none", stroke: "#5598e7", "stroke-width": 2 }));
+    }
+    h = k;
+  }
   svg.append(svgEl("line", { x1: 0, x2: W, y1: base, y2: base, stroke: V.line }));
   for (let d = 0; d <= hours; d += 24) {
     svg.append(svgEl("line", { x1: x(d * 60), x2: x(d * 60), y1: 12, y2: base, stroke: V.line, "stroke-dasharray": "2,3" }));
@@ -315,12 +456,14 @@ function drawHistory(host, H, u) {
   const hit = svgEl("rect", { x: 0, y: 50, width: W, height: 44, fill: "transparent" });
   hit.onmousemove = (e) => {
     const h = Math.min(hours - 1, Math.floor(((e.offsetX) / W) * hours));
-    showTip(e, `${fDayTime.format(new Date(t0 + h * 3600e3))}<br>${T(`forecast: <b>${u.pred[h]}%</b> chance of a new alert within 3 h`, `прогноз: <b>${u.pred[h]}%</b> ймовірність нової тривоги протягом 3 год`)}`);
+    showTip(e, `${fDayTime.format(new Date(t0 + h * 3600e3))}<br>${gap(h) ? T("no forecast was saved for this hour", "для цієї години прогноз не збережено")
+      : T(`forecast: <b>${u.pred[h]}%</b> chance of a new alert within 3 h`, `прогноз: <b>${u.pred[h]}%</b> ймовірність нової тривоги протягом 3 год`)}`);
   };
   hit.onmouseleave = () => (tip.hidden = true);
   svg.append(hit);
   host.append(svg);
-  host.append(el("div", { className: "muted" }, `<span class="chip red">${lvlName("red")}</span> <span class="chip yellow">${lvlName("yellow")}</span> <i class="sw" style="background:${COL.unknown}"></i>${T("level not recorded (before 6 Sep)", "рівень не фіксувався (до 6 вересня)")}`));
+  const gapKey = miss && miss.some(Boolean) ? ` <i class="sw" style="background:${V.muted};opacity:.45"></i>${T("no forecast saved", "прогноз не збережено")}` : "";
+  host.append(el("div", { className: "muted" }, `<span class="chip red">${lvlName("red")}</span> <span class="chip yellow">${lvlName("yellow")}</span> <i class="sw" style="background:${COL.unknown}"></i>${T("level not recorded (before 6 Sep)", "рівень не фіксувався (до 6 вересня)")}${gapKey}`));
 }
 
 // ---------- replay ----------

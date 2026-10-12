@@ -120,7 +120,7 @@ What this means in plain words:
 
 ## 9. The forecast on the site
 
-The site shows one forecast, made at **12 Oct 2026, 12:00 Kyiv time**, from refreshed data (Vadimkin `d10c80fa`, JustJimer `c5b3bd01`, recorded in `data/versions_live.json`; D50). Every model was retrained on all data known at that moment, with the frozen settings (`scripts/predict_now.py`). The test scores stay on the pinned data (`data/versions.json`), with the test period fixed in the code (13 Sep – 11 Oct). The history strip shows forecasts of a model trained only on data before that week, and the replay shows the test-run models, so both are genuine forecasts made without knowing what happened next.
+The deadline version of the site showed one forecast, made at **12 Oct 2026, 12:00 Kyiv time**, from refreshed data (Vadimkin `d10c80fa`, JustJimer `c5b3bd01`, recorded in `data/versions_live.json`; D50). Every model was retrained on all data known at that moment, with the frozen settings (`scripts/predict_now.py`). The test scores stay on the pinned data (`data/versions.json`), with the test period fixed in the code (13 Sep – 11 Oct). The history strip shows forecasts of a model trained only on data before that week, and the replay shows the test-run models, so both are genuine forecasts made without knowing what happened next.
 
 ## 10. Live forecasts (since 12 Oct 2026, evening)
 
@@ -134,3 +134,16 @@ The site now updates **every hour** by itself:
 **Retraining** (re-learning the rules) happens twice a month (D51). Evidence that this is enough: one model trained before
 13 Sep kept its skill over the four test weeks. The "Forecast check" page compares every saved 00:00 / 12:00 forecast with
 what really happened, so a drop in accuracy would show up there first.
+
+## 11. Reading the map panel (since 12 Oct 2026, late evening; D56)
+
+- **Right now** (updated every hour): the chance of a new alert in the next 3 hours and the next hour, the typical duration,
+  red or yellow, and the 24-hour count and hours.
+- **Outlook** (made at 00:00 and 12:00): the 3-hour blocks for the coming days. Between those times it is older than the
+  hourly numbers; blocks that overlap the next 3 hours are dashed, and there the hourly forecast is the better guide.
+- **Under alert now**: striped red on the map. The chances are then for a *new* alert after the current one ends. If one alert
+  has been running for 24 hours or more, the place is shown as a **continuous alert** and no forecast is given (a new alert
+  cannot start while it runs; this can happen when a front-line or border community keeps a district's alert on).
+- **Red or yellow**: the share of red among the place's alerts in the last 7 days, shown together with how many alerts it is
+  based on. With all of them yellow (or all red) the site shows the count, e.g. "0 of 3", instead of 0% or 100%.
+- **History strip**: a grey band means no forecast was saved for those hours (the hourly run did not happen).

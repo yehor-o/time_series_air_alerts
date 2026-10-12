@@ -439,6 +439,23 @@ The site is first built on the pinned data: forecast moment 2026-10-11 09:00 UTC
 - Alternatives: every 3 hours (stale "next hour" forecasts), a separate `live` branch for Netlify (cleaner, but one more setting).
 
 ---
+# Site fixes after the QA (2026-10-12, evening)
+
+## D56. How the site shows alerts running now, the outlook and the red share — Accepted (user, 2026-10-12: "proceed on bug fixes", website only)
+- **Under alert now**: a district/oblast under alert at the forecast moment is striped red on the map ("under alert since
+  HH:MM"); its chances are labelled as "a new alert after this one ends". An alert running **24 h or more** is shown as a
+  **continuous alert** with no forecast, because a new-alert forecast means nothing there (12 Oct: Kharkivskyi and
+  Nikopolskyi districts had one alert for 7+ days and showed 0% / 0%). The 24 h threshold was proposed by Claude: on
+  12 Oct the running alerts were either ≤ 3.3 h or ≥ 168 h, so any threshold in between gives the same result.
+- **Outlook vs hourly**: the 3-hour blocks (made at 00:00 / 12:00, D52) are shown under "Outlook" with their issue time; the
+  block already in progress is left out; blocks overlapping the next 3 h are dashed and point to the newer hourly forecast.
+- **History strip**: hours without a saved forecast are a gap, not 0%.
+- **Red tile**: shows the evidence (R of N alerts in 7 days, national share); when R = 0 or R = N the count replaces the %.
+- Everything is computed in the browser from `history.json` and `p3_log.json`; **no forecast number changes**, the pipeline is untouched.
+- Alternatives (not done, need the pipeline and validation): stitch the hourly 1 h / 3 h forecast into the near blocks via
+  hourly rates; shrink the red share toward the national share (would change D35). Tracked in `tasks.md`.
+
+---
 # Planned after the deadline (2026-10-12) — all Proposed; plans in docs/next_steps.md
 
 ## D53. Faster hourly runs: rolling API refresh — Proposed

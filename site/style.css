@@ -247,3 +247,10 @@ html[data-theme="noir"] .hover, html[data-theme="noir"] .strip-tip { background:
 .ckm.on { background: transparent; color: #ff8a80; border: 1px solid #d03b3b; }
 .cktl { display: block; margin-top: 2px; }
 .ckm { white-space: nowrap; }
+/* under alert now / continuous alert, outlook vs hourly forecast (site QA fixes, 2026-10-12) */
+.legend .keys { flex-wrap: wrap; row-gap: 3px; max-width: 280px; }
+.note { font-size: 12.5px; margin: 6px 0 8px; color: var(--text-muted); }
+p.note { color: var(--text-secondary); font-size: 13.5px; line-height: 1.5; }
+.cell.older { outline: 1.5px dashed var(--text-primary); outline-offset: -3px; }
+.controls button.past { opacity: .55; }
+.now-on.big + h3 { margin-top: 14px; }

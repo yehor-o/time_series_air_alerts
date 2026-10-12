@@ -80,8 +80,11 @@
         They also estimate how long it would last, how many alerts and hours under alert to expect in the next 24 hours,
         whether an alert is likely to be <b>red</b> (missiles, ballistic, massed attacks) or <b>yellow</b> (drones),
         and in which 3-hour blocks (Kyiv time) of the next 7 days alerts are most likely.</p>
-      <p>This is <b>not a live service</b>: the map shows one forecast, made on <b>12 Oct 2026 at 12:00 Kyiv time</b> from the data available
-        then. The "Replay" page and the history strip show what the models forecast, hour by hour, during the four test weeks before that.</p>
+      <p>The forecast is <b>updated every hour</b> from the alerts.in.ua API (it is made for the full hour and appears on the site a few
+        minutes later). The 1-hour and 3-hour chances, durations, the 24-hour ranges and red/yellow are recomputed every hour; the 3-hour
+        blocks of the week ahead are recomputed at 00:00 and 12:00 Kyiv time. The models are retrained about twice a month.
+        The "Replay" page shows the four test weeks hour by hour; the history strip in the side panel shows the site's own forecasts over
+        the last 7 days; the "Forecast check" page compares saved forecasts with what really happened.</p>
       <h2>How it works</h2>
       <p>The training data is a table with one row per district per hour. Each row holds what was known at that hour and
         what happened afterwards. A gradient-boosted decision-tree model (LightGBM) learns from millions of such rows
@@ -97,9 +100,15 @@
         (the model's 25th–75th percentile), because single numbers would suggest more precision than there is.</p>
       <p><b>The week ahead</b> blends two forecasts: the model, which knows what is happening right now, and a simple "pattern rule"
         (in how many of the last 14 days did an alert start in this 3-hour block?). The model's weight starts at 100% and fades to 0% by day 3,
-        because current conditions say little about next week.</p>
+        because current conditions say little about next week. The blocks are made at 00:00 and 12:00, so in between they can be older
+        than the hourly numbers; the side panel marks where they overlap.</p>
+      <p><b>Under alert right now.</b> A district that is under alert at the forecast moment is striped red on the map. Its chances are for a
+        <i>new</i> alert after the current one ends. If one alert has been running for 24 hours or more (this can happen when a front-line
+        or border community inside the district keeps the alert on), the district is shown as a continuous alert and no forecast is given.</p>
       <p><b>Red or yellow</b> uses a simple rule: the district's share of red alerts over the last 7 days. It predicted the level better
-        than the machine-learning models, which had only a few weeks of data with levels to learn from (levels exist since 6 Sep 2026).</p>
+        than the machine-learning models, which had only a few weeks of data with levels to learn from (levels exist since 6 Sep 2026).
+        The side panel shows how many alerts the share is based on. When all of them were yellow (or all red), it shows the count, e.g.
+        "0 of 3", instead of a 0% or 100% that a handful of alerts cannot support.</p>
       <h2>The no-leakage rule</h2>
       <p>A forecast made at time t uses only information published before t. An alert still running at t is known only as
         "started, still active"; its end is not used. Models are trained on the past and scored on later weeks they never saw.</p>
@@ -109,13 +118,15 @@
           (parsed from the @air_alert_ua Telegram channel; artillery and other non-air-raid warnings removed).</li>
         <li>Alerts since 2026-09-06 with yellow/red levels: <a href="https://github.com/JustJimer/ukraine-air-alert-stats">JustJimer/ukraine-air-alert-stats</a>
           (daily archive of the <a href="https://alerts.in.ua">alerts.in.ua</a> API).</li>
+        <li>Live alerts for the hourly forecast: the <a href="https://alerts.in.ua">alerts.in.ua</a> API.</li>
         <li>Threat context: the public Telegram channels @war_monitor and @kpszsu (Air Force), read via their public web previews.
           Both were tested as extra inputs; neither improved the forecasts on the validation weeks, so the map does not use them (see "How good is it?").</li>
         <li>District boundaries: OCHA administrative boundaries (via the Vadimkin repository). Map library: <a href="https://leafletjs.com">Leaflet</a>.</li>
       </ul>
-      <p>Data versions (fixed for reproducibility): the test scores use Vadimkin dataset commit <code>bf0c323c</code> and JustJimer archive commit
-        <code>7abc556b</code> (data up to 11 Oct 2026); the forecast on the map uses the newer commits <code>d10c80fa</code> and <code>c5b3bd01</code>
-        (data up to 12 Oct 2026, 12:00 Kyiv). Code, method and all decisions: <a href="https://github.com/yehor-o/time_series_air_alerts">github.com/yehor-o/time_series_air_alerts</a>.</p>
+      <p>Data versions: the test scores use Vadimkin dataset commit <code>bf0c323c</code> and JustJimer archive commit <code>7abc556b</code>
+        (data up to 11 Oct 2026); these are fixed. The models behind the map were last trained on data up to <span class="about-trained">–</span>
+        (Kyiv time); the exact data versions of each training are recorded in <code>models/meta.json</code> in the repository.
+        Code, method and all decisions: <a href="https://github.com/yehor-o/time_series_air_alerts">github.com/yehor-o/time_series_air_alerts</a>.</p>
       <h2>Disclaimer</h2>
       <p>This is a student demo. It is <b>not</b> an official warning system and must not be used for safety decisions.
         Always follow official air raid alerts.</p>
@@ -129,9 +140,11 @@
         Вони також оцінюють, скільки вона триватиме, скільки тривог і годин під тривогою очікувати в наступні 24 години,
         чи буде тривога <b>червоною</b> (ракети, балістика, масовані атаки) або <b>жовтою</b> (дрони), і в які 3-годинні блоки (за Києвом)
         наступних 7 днів тривоги найбільш ймовірні.</p>
-      <p>Це <b>не сервіс реального часу</b>: мапа показує один прогноз, зроблений <b>12 жовтня 2026 о 12:00 за Києвом</b> на основі даних,
-        доступних на той момент. Сторінка «Повтор» і смуга історії показують, що моделі прогнозували щогодини протягом чотирьох тестових
-        тижнів перед цим. Сторінка «Перевірка прогнозу» порівнює збережені прогнози з тим, що сталося насправді.</p>
+      <p>Прогноз <b>оновлюється щогодини</b> на основі API alerts.in.ua (його роблять на початок години, а на сайті він з'являється через
+        кілька хвилин). Ймовірності на 1 і 3 години, тривалість, діапазони на 24 години та червона/жовта перераховуються щогодини;
+        3-годинні блоки на тиждень уперед — о 00:00 і 12:00 за Києвом. Моделі перенавчаються приблизно двічі на місяць.
+        Сторінка «Повтор» показує чотири тестові тижні щогодини; смуга історії в бічній панелі — власні прогнози сайту за останні 7 днів;
+        сторінка «Перевірка прогнозу» порівнює збережені прогнози з тим, що сталося насправді.</p>
       <h2>Як це працює</h2>
       <p>Навчальні дані — це таблиця, де кожен рядок відповідає одному району в одну годину. У рядку є те, що було відомо на ту годину,
         і те, що сталося після неї. Модель градієнтного бустингу дерев рішень (LightGBM) вчиться на мільйонах таких рядків, які ситуації
@@ -147,9 +160,15 @@
         (25-й–75-й перцентиль моделі), бо одне число створювало б враження більшої точності, ніж є насправді.</p>
       <p><b>Прогноз на тиждень</b> поєднує два прогнози: модель, яка знає, що відбувається зараз, і просте «правило шаблону»
         (у скількох з останніх 14 днів тривога починалася в цьому 3-годинному блоці?). Вага моделі починається зі 100% і до 3-го дня
-        спадає до 0%, бо поточна ситуація мало що каже про наступний тиждень.</p>
+        спадає до 0%, бо поточна ситуація мало що каже про наступний тиждень. Блоки роблять о 00:00 і 12:00, тож між цими моментами вони
+        можуть бути старішими за щогодинні числа; бічна панель позначає, де вони перетинаються.</p>
+      <p><b>Тривога просто зараз.</b> Район, де в момент прогнозу триває тривога, на мапі заштрихований червоним. Його ймовірності стосуються
+        <i>нової</i> тривоги після завершення поточної. Якщо одна тривога триває 24 години або довше (так буває, коли прифронтова чи
+        прикордонна громада в районі тримає тривогу), район позначено як безперервну тривогу, і прогноз не показано.</p>
       <p><b>Червона чи жовта</b> визначається простим правилом: частка червоних тривог у районі за останні 7 днів. Воно передбачало рівень
-        краще за моделі машинного навчання, яким бракувало даних з рівнями для навчання (рівні існують з 6 вересня 2026).</p>
+        краще за моделі машинного навчання, яким бракувало даних з рівнями для навчання (рівні існують з 6 вересня 2026).
+        Бічна панель показує, на скількох тривогах ґрунтується частка. Якщо всі вони були жовтими (або всі червоними), сайт показує
+        кількість, наприклад «0 з 3», а не 0% чи 100%, яких кілька тривог не можуть підтвердити.</p>
       <h2>Правило «без підглядання в майбутнє»</h2>
       <p>Прогноз, зроблений у момент t, використовує лише інформацію, опубліковану до t. Тривога, що ще триває в момент t, відома лише як
         «почалася, ще триває»; її кінець не використовується. Моделі навчаються на минулому й оцінюються на пізніших тижнях, яких вони не бачили.</p>
@@ -159,14 +178,16 @@
           (з Telegram-каналу @air_alert_ua; артилерійські та інші не повітряні попередження вилучено).</li>
         <li>Тривоги з 2026-09-06 з рівнями жовта/червона: <a href="https://github.com/JustJimer/ukraine-air-alert-stats">JustJimer/ukraine-air-alert-stats</a>
           (щоденний архів API <a href="https://alerts.in.ua">alerts.in.ua</a>).</li>
+        <li>Тривоги наживо для щогодинного прогнозу: API <a href="https://alerts.in.ua">alerts.in.ua</a>.</li>
         <li>Контекст загроз: публічні Telegram-канали @war_monitor і @kpszsu (Повітряні сили), прочитані через їхні публічні вебсторінки.
           Обидва перевірено як додаткові вхідні дані; жоден не покращив прогнози на валідаційних тижнях, тож мапа їх не використовує
           (див. «Наскільки добре?»).</li>
         <li>Межі районів: адміністративні межі OCHA (через репозиторій Vadimkin). Бібліотека мап: <a href="https://leafletjs.com">Leaflet</a>.</li>
       </ul>
-      <p>Версії даних (зафіксовані для відтворюваності): тестові оцінки використовують коміт набору Vadimkin <code>bf0c323c</code> і коміт архіву
-        JustJimer <code>7abc556b</code> (дані до 11 жовтня 2026); прогноз на мапі використовує новіші коміти <code>d10c80fa</code> і <code>c5b3bd01</code>
-        (дані до 12 жовтня 2026, 12:00 за Києвом). Код, метод і всі рішення: <a href="https://github.com/yehor-o/time_series_air_alerts">github.com/yehor-o/time_series_air_alerts</a>.</p>
+      <p>Версії даних: тестові оцінки використовують коміт набору Vadimkin <code>bf0c323c</code> і коміт архіву JustJimer <code>7abc556b</code>
+        (дані до 11 жовтня 2026); вони зафіксовані. Моделі для мапи востаннє навчено на даних до <span class="about-trained">–</span>
+        (за Києвом); точні версії даних кожного навчання записано в <code>models/meta.json</code> у репозиторії.
+        Код, метод і всі рішення: <a href="https://github.com/yehor-o/time_series_air_alerts">github.com/yehor-o/time_series_air_alerts</a>.</p>
       <h2>Застереження</h2>
       <p>Це студентська демонстрація. Вона <b>не</b> є офіційною системою оповіщення і не повинна використовуватися для рішень щодо безпеки.
         Завжди дійте за офіційними сигналами повітряної тривоги.</p>
