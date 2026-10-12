@@ -275,7 +275,7 @@ Only `air_raid` rows define targets. The typed threats are **kept as possible fe
 - Validation: 4 weekly walk-forward folds before the test period (Aug 16, Aug 23, Aug 30, Sep 6). Training rows are purged so their target windows end before the fold starts.
 - The training-window length (all since 2024 / 12 / 6 / 3 months) is compared on the folds (D7).
 
-## D32. Yellow/red split — Proposed
+## D32. Yellow/red split — Accepted (user, 2026-10-12: 3 weeks train + 2 weeks test)
 - There are only about 5 weeks of data with levels, so the red model gets its own split:
   - train from 2026-09-06;
   - validate on the weeks of Sep 13–19 and Sep 20–26;
