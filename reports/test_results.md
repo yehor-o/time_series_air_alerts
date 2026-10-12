@@ -166,3 +166,56 @@ pattern rule        0.1692  0.1723  0.1723  0.1726  0.1707  0.1710  0.1726
 timing model alone  0.1714  0.1798  0.1831  0.1836  0.1815  0.1788  0.1788
 blend (chosen)      0.1689  0.1712  0.1709  0.1726  0.1707  0.1710  0.1726
 ```
+
+## Oblast (24 units)
+
+### New alert within 1h
+
+Base rate: 0.197 (16,344 unit-hours).
+
+```
+                                    Brier  log-loss  ROC-AUC  PR-AUC  skill vs same-hour
+baseline: same hour, last 14 days  0.1436    0.4992   0.7405  0.3467              0.0000
+baseline: persistence              0.1680    0.5433   0.5536  0.2211             -0.1696
+logistic regression                0.1206    0.3774   0.8274  0.5278              0.1603
+LightGBM (chosen)                  0.1201    0.3767   0.8249  0.5472              0.1640
+LightGBM + @war_monitor            0.1194    0.3744   0.8288  0.5541              0.1684
+LightGBM + @kpszsu                 0.1200    0.3759   0.8270  0.5445              0.1646
+```
+
+Chosen model by time of day:
+
+```
+                    Brier  log-loss  ROC-AUC  PR-AUC  skill vs same-hour
+day (06-22 Kyiv)     0.12     0.377    0.832   0.579               0.174
+night (22-06 Kyiv)   0.12     0.376    0.811   0.487               0.143
+```
+
+Chosen model by test week:
+
+```
+        Brier  ROC-AUC  skill vs same-hour
+week 1  0.118    0.810               0.130
+week 2  0.115    0.853               0.206
+week 3  0.118    0.821               0.153
+week 4  0.129    0.820               0.171
+week 5  0.161    0.778               0.052
+```
+
+Calibration (chosen model):
+
+```
+                rows  predicted  observed
+bin                                      
+(-0.001, 0.05]  4396      0.017     0.016
+(0.05, 0.1]     2335      0.075     0.078
+(0.1, 0.2]      4152      0.146     0.161
+(0.2, 0.3]      1900      0.244     0.248
+(0.3, 0.4]      1083      0.348     0.343
+(0.4, 0.5]       916      0.449     0.486
+(0.5, 0.6]       789      0.548     0.579
+(0.6, 0.7]       486      0.643     0.673
+(0.7, 0.8]       194      0.742     0.742
+(0.8, 0.9]        88      0.846     0.898
+(0.9, 1.0]         5      0.914     0.800
+```
