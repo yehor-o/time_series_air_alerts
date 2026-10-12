@@ -24,7 +24,7 @@ The user owns this project and must understand and approve what happens.
 4. Never present a result you did not actually compute. If something failed or was skipped, say so.
 5. **Approved websites only.** The environment has full network access, but Claude may only visit sites the user approved:
    - `github.com` / `raw.githubusercontent.com`: the Vadimkin dataset, the JustJimer archive (`JustJimer/ukraine-air-alert-stats`) and this repo
-   - `t.me`: the public web previews of `@war_monitor` and `@air_alert_ua`
+   - `t.me`: the public web previews of `@war_monitor`, `@air_alert_ua`, `@kpszsu` and `@UkraineAlarmSignal` (the last two approved 2026-10-12)
    - `pypi.org`: package installs (approved for Python libraries)
    - `cdnjs.cloudflare.com`: Leaflet 1.9.4 for the website map (approved 2026-10-12)
 
