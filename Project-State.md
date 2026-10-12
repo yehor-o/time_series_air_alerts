@@ -25,7 +25,8 @@ _Last updated: 2026-10-12, ~17:30 Kyiv (session 2)._ Deadline: **today 23:59 Kyi
 - **LIVE:** https://air-alert-forecast-ua.netlify.app (Netlify, publishes `site/` from `main` on every merge). PR #4 merged.
 - **Data refresh done (D50):** live forecast now 12 Oct 12:00 Kyiv from Vadimkin `d10c80fa` / JustJimer `c5b3bd01` (`data/versions_live.json`); test period fixed in code (`TEST_START`/`TEST_END` in `scripts/validate_models.py`); `data/versions.json` keeps the test pins. @war_monitor had no posts after 11 Oct 10:02 (no new silences ≥2 h in the archive, so no effect).
 - **Forecast check page** done: every published forecast archived in `site/data/archive/`; the 11 Oct 12:00 forecast checked against the next 24 h: district blocks with an alert got 53% on average vs 23% for quiet ones (AUC 0.81; oblasts 0.86); count inside range in 67% of districts, hours in 51%.
-- **NEXT:** Ukrainian version; live hourly forecasts via the alerts.in.ua API + GitHub Actions (token in GitHub secret `ALERTS_IN_UA_TOKEN`).
+- **Ukrainian version** done: EN | UA switch in the header (`?lang=uk`), every text paired in `site/app.js` via `T(en, uk)`, Ukrainian About page in `index.html` (`#about-uk`). The user should review the Ukrainian wording.
+- **NEXT:** live hourly forecasts via the alerts.in.ua API + GitHub Actions (token in GitHub secret `ALERTS_IN_UA_TOKEN`).
 
 ## Data snapshots (all downloads complete)
 - **In git (D15):** `data/telegram/*.jsonl.gz` and `data/labels/official_labels.parquet`. **Complete** downloads:

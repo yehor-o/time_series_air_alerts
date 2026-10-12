@@ -12,10 +12,11 @@
   <div class="brand">
     <span class="flag" aria-hidden="true"></span>
     <div>
-      <h1>Time-Series Air Alert Forecast, Ukraine <span class="demo">demo</span></h1>
+      <h1 id="site-title">Time-Series Air Alert Forecast, Ukraine <span class="demo">demo</span></h1>
       <div class="sub" id="asof">Loading…</div>
     </div>
   </div>
+  <div class="langsw"><button data-lang="en">EN</button><button data-lang="uk">UA</button></div>
   <nav id="tabs">
     <button data-page="map" class="on">Map</button>
     <button data-page="replay">Replay</button>
@@ -33,9 +34,9 @@
     <div class="mapwrap">
       <div id="map"></div>
       <div class="controls">
-        <div class="group"><span class="lbl">View</span>
+        <div class="group"><span class="lbl" id="lbl-view">View</span>
           <button data-level="raion" class="on">Districts</button><button data-level="oblast">Oblasts</button></div>
-        <div class="group"><span class="lbl">Forecast</span>
+        <div class="group"><span class="lbl" id="lbl-fc">Forecast</span>
           <button data-h="p1" class="on">Next 1h</button><button data-h="p3">Next 3h</button><button data-h="block">By time block</button></div>
         <div class="group" id="blockpicker" hidden>
           <div id="daypick"></div><div id="blockpick"></div>
@@ -54,8 +55,8 @@
       <div class="legend" id="rlegend"></div>
     </div>
     <aside id="rpanel">
-      <h2>Replay of the test weeks</h2>
-      <p class="muted">Every hour of the test period, the colour shows what the model predicted for the next 3 hours,
+      <h2 id="replay-title">Replay of the test weeks</h2>
+      <p class="muted" id="replay-text">Every hour of the test period, the colour shows what the model predicted for the next 3 hours,
         using only data available at that moment. A white outline marks districts where an alert actually started
         in those 3 hours.</p>
       <div class="rtime" id="rtime"></div>
@@ -121,6 +122,56 @@
     </div>
   </section>
 </main>
+<template id="about-uk">
+      <h2>Що це</h2>
+      <p>Демонстрація прогнозування повітряних тривог в Україні методами аналізу часових рядів, окремо для кожного району та кожної області.
+        Моделі відповідають на запитання: <b>наскільки ймовірно, що тут почнеться нова тривога протягом наступної години / 3 годин?</b>
+        Вони також оцінюють, скільки вона триватиме, скільки тривог і годин під тривогою очікувати в наступні 24 години,
+        чи буде тривога <b>червоною</b> (ракети, балістика, масовані атаки) або <b>жовтою</b> (дрони), і в які 3-годинні блоки (за Києвом)
+        наступних 7 днів тривоги найбільш ймовірні.</p>
+      <p>Це <b>не сервіс реального часу</b>: мапа показує один прогноз, зроблений <b>12 жовтня 2026 о 12:00 за Києвом</b> на основі даних,
+        доступних на той момент. Сторінка «Повтор» і смуга історії показують, що моделі прогнозували щогодини протягом чотирьох тестових
+        тижнів перед цим. Сторінка «Перевірка прогнозу» порівнює збережені прогнози з тим, що сталося насправді.</p>
+      <h2>Як це працює</h2>
+      <p>Навчальні дані — це таблиця, де кожен рядок відповідає одному району в одну годину. У рядку є те, що було відомо на ту годину,
+        і те, що сталося після неї. Модель градієнтного бустингу дерев рішень (LightGBM) вчиться на мільйонах таких рядків, які ситуації
+        призводили до тривог. Вхідні дані, усі обчислені лише з даних <i>до</i> моменту прогнозу:</p>
+      <ul>
+        <li><b>Цей район зараз:</b> чи триває тривога, скільки годин минуло від початку й кінця останньої тривоги.</li>
+        <li><b>Недавня активність:</b> тривоги й години під тривогою за останні 1, 3, 6, 24 години і 7 днів.</li>
+        <li><b>Звички:</b> як часто тривога починалася в цю годину доби в останні дні; частка останніх ночей і днів із тривогами.</li>
+        <li><b>Його область і вся країна:</b> частка районів під тривогою зараз, недавні тривоги поруч і по всій країні.</li>
+        <li><b>Календар:</b> година й день тижня за Києвом; яка це область.</li>
+      </ul>
+      <p>Налаштування моделі підібрано на валідаційних тижнях до тесту. Тривалість і показники на 24 години подано діапазонами
+        (25-й–75-й перцентиль моделі), бо одне число створювало б враження більшої точності, ніж є насправді.</p>
+      <p><b>Прогноз на тиждень</b> поєднує два прогнози: модель, яка знає, що відбувається зараз, і просте «правило шаблону»
+        (у скількох з останніх 14 днів тривога починалася в цьому 3-годинному блоці?). Вага моделі починається зі 100% і до 3-го дня
+        спадає до 0%, бо поточна ситуація мало що каже про наступний тиждень.</p>
+      <p><b>Червона чи жовта</b> визначається простим правилом: частка червоних тривог у районі за останні 7 днів. Воно передбачало рівень
+        краще за моделі машинного навчання, яким бракувало даних з рівнями для навчання (рівні існують з 6 вересня 2026).</p>
+      <h2>Правило «без підглядання в майбутнє»</h2>
+      <p>Прогноз, зроблений у момент t, використовує лише інформацію, опубліковану до t. Тривога, що ще триває в момент t, відома лише як
+        «почалася, ще триває»; її кінець не використовується. Моделі навчаються на минулому й оцінюються на пізніших тижнях, яких вони не бачили.</p>
+      <h2>Дані</h2>
+      <ul>
+        <li>Офіційні тривоги 2022-03 → 2026-09-07: <a href="https://github.com/Vadimkin/ukrainian-air-raid-sirens-dataset">Vadimkin/ukrainian-air-raid-sirens-dataset</a>
+          (з Telegram-каналу @air_alert_ua; артилерійські та інші не повітряні попередження вилучено).</li>
+        <li>Тривоги з 2026-09-06 з рівнями жовта/червона: <a href="https://github.com/JustJimer/ukraine-air-alert-stats">JustJimer/ukraine-air-alert-stats</a>
+          (щоденний архів API <a href="https://alerts.in.ua">alerts.in.ua</a>).</li>
+        <li>Контекст загроз: публічні Telegram-канали @war_monitor і @kpszsu (Повітряні сили), прочитані через їхні публічні вебсторінки.
+          Обидва перевірено як додаткові вхідні дані; жоден не покращив прогнози на валідаційних тижнях, тож мапа їх не використовує
+          (див. «Наскільки добре?»).</li>
+        <li>Межі районів: адміністративні межі OCHA (через репозиторій Vadimkin). Бібліотека мап: <a href="https://leafletjs.com">Leaflet</a>.</li>
+      </ul>
+      <p>Версії даних (зафіксовані для відтворюваності): тестові оцінки використовують коміт набору Vadimkin <code>bf0c323c</code> і коміт архіву
+        JustJimer <code>7abc556b</code> (дані до 11 жовтня 2026); прогноз на мапі використовує новіші коміти <code>d10c80fa</code> і <code>c5b3bd01</code>
+        (дані до 12 жовтня 2026, 12:00 за Києвом). Код, метод і всі рішення: <a href="https://github.com/yehor-o/time_series_air_alerts">github.com/yehor-o/time_series_air_alerts</a>.</p>
+      <h2>Застереження</h2>
+      <p>Це студентська демонстрація. Вона <b>не</b> є офіційною системою оповіщення і не повинна використовуватися для рішень щодо безпеки.
+        Завжди дійте за офіційними сигналами повітряної тривоги.</p>
+</template>
+
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script src="app.js"></script>
