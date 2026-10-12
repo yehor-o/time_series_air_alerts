@@ -30,14 +30,14 @@ const svgEl = (tag, attrs) => { const e = document.createElementNS("http://www.w
 const S = { level: "raion", h: "p1", block: 0, selected: null, D: {} };
 
 async function load() {
-  const names = ["meta", "now", "week", "history", "replay", "metrics"];
+  const names = ["meta", "now", "week", "history", "replay", "metrics", "check"];
   const [geo, ...rest] = await Promise.all([fetch("data/raions.geojson").then((r) => r.json()),
     ...names.map((n) => fetch(`data/${n}.json`).then((r) => r.json()))]);
   S.geo = geo;
   names.forEach((n, i) => (S.D[n] = rest[i]));
   if (S.D.meta.sample) $("#sample-banner").hidden = false;
   $("#asof").textContent = `Forecast made at ${fDayTime.format(new Date(S.D.meta.forecast_time_utc))} (Kyiv time) · data up to ${fDayTime.format(new Date(S.D.meta.data_until_utc))}`;
-  initTabs(); initMap(); initControls(); renderLegend("#legend"); initReplay(); renderQuality();
+  initTabs(); initMap(); initControls(); renderLegend("#legend"); initReplay(); renderQuality(); initCheck();
 }
 
 // ---------- helpers on data ----------
@@ -491,6 +491,76 @@ function drawCalibration(host, cal) {
   const lx = svgEl("text", { x: sx(0.3), y: H - 4 }); lx.textContent = "forecast probability"; svg.append(lx);
   const ly = svgEl("text", { x: sx(0.02), y: 12 }); ly.textContent = "share of cases with a new alert (dashed = perfect)"; svg.append(ly);
   host.append(svg);
+}
+
+// ---------- forecast check: saved forecasts vs what happened ----------
+function initCheck() {
+  const C = S.D.check, M = S.D.meta;
+  const snapLabel = (sn) => `${fDayTime.format(new Date(sn.forecast_time_utc))} (Kyiv)`;
+  const opts = (lv) => Object.keys(M.units[lv]).sort((a, b) => unitName(a, lv).localeCompare(unitName(b, lv)))
+    .map((id) => `<option value="${lv}|${id}">${unitName(id, lv)}</option>`).join("");
+  $("#check").innerHTML = `<div class="docbody wide">
+    <h2>Forecast check: did the forecast come true?</h2>
+    <p>Every forecast this site publishes is saved. Once the next 24 hours have passed, it is compared here with what really
+      happened: did a new alert start in each 3-hour block, how many alerts were there, and how many hours under alert.
+      The saved forecast is never changed afterwards. Data for the check: up to ${fDayTime.format(new Date(C.data_until_utc))} (Kyiv).</p>
+    <div class="ctrl-row"><label>Forecast made at <select id="ck-snap">${C.snapshots.map((sn, i) => `<option value="${i}">${snapLabel(sn)}</option>`).join("")}</select></label>
+      <label>Add a place <select id="ck-unit"><option value="">choose…</option><optgroup label="Districts">${opts("raion")}</optgroup><optgroup label="Oblasts">${opts("oblast")}</optgroup></select></label></div>
+    <div id="ck-summary"></div><div class="grid2" id="ck-cards"></div></div>`;
+  let extra = null;
+  const draw = () => {
+    const sn = C.snapshots[+$("#ck-snap").value];
+    const sm = sn.summary_raion, so = sn.summary_oblast;
+    const known = sm.blocks_known > 0;
+    $("#ck-summary").innerHTML = known ? `<div class="tiles four">
+        <div class="tile"><div class="v">${pct(sm.avg_forecast_alert_blocks)} vs ${pct(sm.avg_forecast_quiet_blocks)}</div><div class="k">all districts: average forecast for 3-hour blocks where an alert started vs blocks without one</div></div>
+        <div class="tile"><div class="v">${f3(sm.auc)}</div><div class="k">AUC over ${sm.blocks_known.toLocaleString()} district blocks (oblasts: ${f3(so.auc)})</div></div>
+        <div class="tile"><div class="v">${sm.count_inside_range == null ? "–" : pct(sm.count_inside_range)}</div><div class="k">districts where the number of alerts fell inside the forecast range</div></div>
+        <div class="tile"><div class="v">${sm.hours_inside_range == null ? "–" : pct(sm.hours_inside_range)}</div><div class="k">districts where the hours under alert fell inside the forecast range</div></div></div>`
+      : `<p class="cap"><b>Not checkable yet:</b> the 24 hours after this forecast have not passed in the data. The page fills in as new data arrives.</p>`;
+    const host = $("#ck-cards"); host.innerHTML = "";
+    const list = C.featured.map((id) => ["raion", id]);
+    if (extra) list.push(extra);
+    list.forEach(([lv, id]) => checkCard(host, sn, lv, id));
+  };
+  const first = C.snapshots.findIndex((sn) => sn.summary_raion.blocks_known > 0);  // open on the latest checkable forecast
+  if (first >= 0) $("#ck-snap").value = String(first);
+  $("#ck-snap").onchange = draw;
+  $("#ck-unit").onchange = (e) => { extra = e.target.value ? e.target.value.split(/\|(.*)/s).slice(0, 2) : null; draw(); };
+  draw();
+}
+function checkCard(host, sn, lv, id) {
+  const u = sn[lv][id]; if (!u) return;
+  const t0 = new Date(sn.forecast_time_utc).getTime();
+  const box = el("div", { className: "chart" }, `<div class="ctitle">${unitName(id, lv)}</div>`);
+  const cells = el("div", { className: "cells ck" });
+  sn.block_starts_utc.forEach((b, i) => {
+    const p = u.next24[i], y = u.actual_blocks[i];
+    const mark = y == null ? `<span class="ckm unk">not yet</span>` : y ? `<span class="ckm yes">alert</span>` : `<span class="ckm no">quiet</span>`;
+    const c = el("div", { className: "cell" }, `${fHour.format(new Date(b))}<b>${pct(p)}</b>`);
+    c.style.background = rampColor(p); c.style.color = textOn(p);
+    const w = el("div", { className: "ckcol" }); w.append(c); w.append(el("div", {}, mark)); cells.append(w);
+  });
+  box.append(el("div", { className: "cnote" }, "Forecast: chance of a new alert in each 3-hour block (Kyiv time). Below: what happened."));
+  box.append(cells);
+  // 24 h timeline of the actual alerts
+  const W = 400, svg = svgEl("svg", { width: W, height: 34 }), x = (m) => (m / 1440) * W;
+  svg.append(svgEl("rect", { x: 0, y: 6, width: W, height: 16, rx: 3, fill: "#152238", stroke: "#2b3d5c" }));
+  u.alerts.forEach(([s, e, lvl]) => {
+    const r = svgEl("rect", { x: x(s), y: 6, width: Math.max(1.5, x(e) - x(s)), height: 16, rx: 2, fill: COL[lvl] || COL.unknown });
+    r.onmousemove = (ev) => showTip(ev, `${fDayTime.format(new Date(t0 + s * 6e4))} – ${fHour.format(new Date(t0 + e * 6e4))}${lvl === "red" || lvl === "yellow" ? `<br><span class="chip ${lvl}">${lvl}</span>` : ""}`);
+    r.onmouseleave = () => (tip.hidden = true);
+    svg.append(r);
+  });
+  const known = (new Date(sn.known_until_utc).getTime() - t0) / 6e4;
+  if (known < 1440) svg.append(svgEl("rect", { x: x(known), y: 6, width: W - x(known), height: 16, fill: "#3a3f47", opacity: 0.85 }));  // not known yet
+  const lab = svgEl("text", { x: 0, y: 33 }); lab.textContent = "actual alerts in the 24 hours after the forecast"; svg.append(lab);
+  box.append(svg);
+  const ok = (v, r) => (v == null ? `<span class="ckm unk">not yet known</span>` : v >= r[0] && v <= r[1] ? `<span class="ckm yes2">inside the range</span>` : `<span class="ckm out">outside the range</span>`);
+  box.append(el("div", { className: "tiles" }, `
+    <div class="tile"><div class="v">${u.cnt[0]}–${u.cnt[1]} → ${u.actual_cnt ?? "?"}</div><div class="k">alerts: forecast range → actual · ${ok(u.actual_cnt, u.cnt)}</div></div>
+    <div class="tile"><div class="v">${u.hrs[0]}–${u.hrs[1]} h → ${u.actual_hrs ?? "?"} h</div><div class="k">hours under alert · ${ok(u.actual_hrs, u.hrs)}</div></div>`));
+  host.append(box);
 }
 
 load().catch((e) => { document.body.insertAdjacentHTML("afterbegin", `<pre style="color:#f88">Failed to load data: ${e}</pre>`); console.error(e); });

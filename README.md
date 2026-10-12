@@ -77,6 +77,7 @@ PYTHONPATH=.:scripts python scripts/validate_models.py         # also compare_wi
 PYTHONPATH=.:scripts python scripts/final_test.py              # the final test -> reports/test_results.md (~12 min)
 PYTHONPATH=.:scripts python scripts/predict_now.py             # live forecast -> reports/now_predictions.json (~9 min)
 PYTHONPATH=. python scripts/export_site.py                     # -> site/data/*.json
+PYTHONPATH=. python scripts/forecast_check.py                  # archive the forecast + check old ones -> site/data/check.json
 cd site && python3 -m http.server 8765                         # open http://localhost:8765
 ```
 
