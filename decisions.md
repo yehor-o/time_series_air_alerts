@@ -358,3 +358,41 @@ One LightGBM predicts P(new alert starts) for each 3-hour **Kyiv-time** block of
 - All times shown in **Kyiv time**.
 - Click panel: history strip (actual alerts + predicted probability on the same timeline) **and a separate week-ahead strip**.
 - Pages: Map, Replay (test weeks), How good is it? (incl. with vs without Telegram), About.
+
+## D44. Telegram (@war_monitor) as input — result: NOT used (rule agreed with the user)
+`reports/telegram_ablation.md`, 4 validation weeks, accepted training history (D40):
+
+| Target | Raion without / with | Oblast without / with |
+|---|---|---|
+| 1h skill | 0.186 / 0.179 | 0.214 / 0.208 |
+| 3h skill | 0.326 / 0.279 | 0.366 / 0.353 |
+| 24h count MAE | 1.48 / 1.50 | 1.64 / 1.67 |
+| 24h hours MAE | 1.91 / 1.95 | 2.02 / 2.06 |
+
+@war_monitor makes every target slightly worse, so the map uses the plain models. Both are shown on "How good is it?".
+
+**Next candidate:** @kpszsu (Air Force, ~350 posts/day, 81% name an oblast, 21 oblasts; @war_monitor has 31/day and 14 oblasts). It is being downloaded since 2025-09 and should be tested with the same script once complete.
+
+## D45. Timing model: model for days 1–2, pattern rule for days 3–7 — Proposed
+`reports/timing_validation.md`, 2 validation weeks. AUC by lead day:
+
+| Lead | Raion: pattern / model | Oblast: pattern / model |
+|---|---|---|
+| day 1 | 0.759 / 0.803 (skill +0.08) | 0.769 / 0.804 (+0.10) |
+| day 2 | 0.765 / 0.782 (+0.03) | 0.778 / 0.792 (+0.04) |
+| day 3–7 | about equal; the model's Brier is worse (skill −0.02…−0.07) | same |
+
+**Proposal:** the week-ahead view uses the LightGBM timing model for blocks in the first 48 h and the pattern rule ("share of the last 14 days with a new alert in this clock block") for days 3–7. That's honest and simple.
+
+## D46. @UkraineAlarmSignal — candidate second alert source (2026-10-12)
+- An alert feed: raion/city, **yellow/red level**, all-clears, local typed threats (БПЛА, КАБ).
+- About 1,500 posts/day, 93% name an oblast. History since 2022-02-25 (~654k posts).
+- Being downloaded for the reform period only (since 2026-09-01).
+- Uses:
+  - an independent cross-check of the JustJimer archive (holes, Lviv/Volyn, D30);
+  - yellow/red truth;
+  - per-city threat-type inputs.
+
+## D15 (follow-up). Commit compressed Telegram data — Accepted (user, 2026-10-12)
+Re-scraping takes hours (@air_alert_ua alone ~5 h). Proposal: commit `.jsonl.gz` copies of the scraped channels and `official_labels.parquet` (tens of MB) so a new session/container doesn't need to re-download.
+Done: `data/telegram/*.jsonl.gz` (all scraped channels, 8.3 MB; @kpszsu and @UkraineAlarmSignal are PARTIAL snapshots taken mid-download) and `data/labels/official_labels.parquet` (5 MB). Restore with `scripts/restore_data.sh`.

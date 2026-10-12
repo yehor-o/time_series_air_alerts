@@ -1,88 +1,73 @@
 # Project State
 
-_Last updated: 2026-10-11 (Sun)_
+_Last updated: 2026-10-12, ~15:10 Kyiv (end of session 1)._ Deadline: **today 23:59 Kyiv**.
 
-## Status (2026-10-12 morning)
-**Tasks 1 and 2 of the overnight plan are done. Waiting for the user's review and the "go" for the final test run.**
-- Data pipeline: `scripts/download_data.py` → `scripts/build_alert_table.py` → `scripts/build_panel.py` (outputs in `data/processed/`, parquet not in git).
-- @air_alert_ua fully scraped. 99.99% of official rows labelled by message type; 22,273 artillery rows (7.4%) excluded.
-- Leakage tests: 7 passing (`tests/test_leakage.py`).
-- Validation: `scripts/validate_models.py` → `reports/validation.md`. The test period (from 2026-09-13) is untouched.
-- New decisions D27–D35 are **Proposed**, waiting for review.
-- Next: user review → final test run → JSON export → website (Netlify) → Telegram ablation.
+## Where we are
+- **Data pipeline: done.** Official data (artillery and other non-air-raid rows removed via @air_alert_ua message labels) + JustJimer alerts.in.ua archive (from 2026-09-06 12:00 UTC, with yellow/red). 119 raions, 24 oblasts (Luhansk and Crimea excluded), 2022-02 → 2026-10-11.
+- **Forecasting tables: done** (hourly per raion and oblast since 2022-03, leakage-safe, 9 leakage tests passing).
+- **Validation and model selection: mostly done.** Accepted choices:
+  - LightGBM;
+  - history: raion = last 12 months, oblast = full history with recency weights (D40);
+  - duration and 24h counts shown as ranges (D41);
+  - yellow/red: the best on validation (currently the simple 7-day share rule);
+  - Telegram (@war_monitor) not used (D44).
+- **Still to choose:** timing hybrid (D45, Proposed); LightGBM tuning (not done).
+- **Website: skeleton done** in `site/` on SAMPLE data (map, click panel, strips, heatmap, replay, quality, about). Real data export not done yet.
+- **NOT done:** final test run (13 Sep – 11 Oct), "now" and week-ahead predictions, `scripts/export_site.py`, Netlify deploy, README.
 
-## What exists
-- `CLAUDE.md`: rules, including the no-leakage protocol and the working agreement (ask before acting, explain everything)
-- `decisions.md`: decisions D1–D21
-- `tasks.md`: phased task list with priorities for the deadline
-- `Project-State.md`: this file
-- `requirements.txt` + `.venv/` (local only): Python 3.13 with pandas, numpy, scikit-learn, LightGBM, requests, bs4, lxml, matplotlib, pyarrow, pytest
-- `scripts/scrape_telegram.py`: scraper for public Telegram channels → `data/raw/telegram/` (gitignored); supports parallel id ranges
-- `scripts/explore_spatial_options.py` + `reports/spatial_options.md`: oblast vs raion comparison (D16 results)
-- `scripts/download_data.py`, `data/versions.json`: datasets at pinned commits (Vadimkin `bf0c323c`, JustJimer `7abc556b`)
-- `src/alerts/` (sources, telegram, build, features) + `scripts/build_alert_table.py`, `scripts/build_panel.py`: the pipeline
-- `tests/test_leakage.py`: leakage tests
-- `scripts/validate_models.py`: walk-forward validation of all models
-- Reports: `data_quality.md`, `air_alert_ua_messages.md`, `validation.md`, `validation_metrics.json`
+## Running / unfinished at the end of session 1
+- **Telegram downloads** (resumable: re-run the same command and the scraper continues from the oldest saved post):
+  - `@kpszsu` since 2025-09 → `data/raw/telegram/kpszsu/part{0,1,2}.jsonl`, ranges 85556→71000→56000→41000;
+  - `@UkraineAlarmSignal` since 2026-09-01 → `data/raw/telegram/UkraineAlarmSignal/part{0,1,2}.jsonl`, ranges 653907→633000→612000→580000.
+- **Data snapshots are in git (D15):** `data/telegram/*.jsonl.gz` (all channels; @kpszsu and @UkraineAlarmSignal partial, taken ~15:15 Kyiv) and `data/labels/official_labels.parquet`.
+- **In a fresh container:**
+  1. `bash scripts/restore_data.sh` (puts everything back into `data/raw/`);
+  2. `python scripts/download_data.py --pin`;
+  3. `PYTHONPATH=. python scripts/build_alert_table.py`;
+  4. `PYTHONPATH=. python scripts/build_panel.py --start 2022-03-01`.
+- **Resume the two downloads** (each worker continues below the oldest post already saved in its part file):
+```
+for i in 0 1 2; do K=(85556 71000 56000 41000); python scripts/scrape_telegram.py kpszsu --out data/raw/telegram/kpszsu/part$i.jsonl --start-before ${K[$i]} --stop-id ${K[$((i+1))]} --until 2025-09-01 & done
+for i in 0 1; do U=(653907 633000 612000); python scripts/scrape_telegram.py UkraineAlarmSignal --out data/raw/telegram/UkraineAlarmSignal/part$i.jsonl --start-before ${U[$i]} --stop-id ${U[$((i+1))]} --until 2026-09-01 & done
+wait
+```
+  (UkraineAlarmSignal part2 already reached 2026-09-01.)
 
-## Facts established so far
-Pinned versions used in the explorations:
-- Vadimkin `bf0c323c` (2026-10-11 04:50 UTC)
-- JustJimer archive `7abc556b` (2026-10-11 10:07 UTC)
+## How to run (from the repo root)
+```
+python3 -m venv .venv && . .venv/bin/activate && pip install -r requirements.txt
+python scripts/download_data.py --pin                         # pinned data versions (data/versions.json)
+python scripts/scrape_telegram.py war_monitor --out data/raw/telegram/war_monitor.jsonl
+# @air_alert_ua: 4 parallel id ranges, see decisions.md D18/D25 (~2.5 h)
+PYTHONPATH=. python scripts/build_alert_table.py              # -> data/processed/alerts_*.parquet, reports/data_quality.md
+PYTHONPATH=. python scripts/build_panel.py --start 2022-03-01 # -> panel_raion/oblast.parquet, red_events.parquet
+PYTHONPATH=. python -m pytest -q tests/                       # leakage tests
+PYTHONPATH=.:scripts python scripts/validate_models.py        # and compare_windows / compare_telegram / validate_timing / explore_weak_targets
+PYTHONPATH=. python scripts/build_map.py                      # site/data/raions.geojson
+python scripts/make_sample_site_data.py                       # SAMPLE json for the site (replace with export)
+cd site && python3 -m http.server 8765                        # view the site
+```
+**Run heavy model jobs ONE AT A TIME** (4 cores; parallel LightGBM jobs slow down dramatically).
 
-**Volunteer dataset** (`datasets/volunteer_data_en.csv`)
-- 115,989 alerts, 2022-02-25 → 2026-10-11, oblast level, 25 regions (incl. Kyiv City and Luhanska).
-- About 5% of the alerts are `naive` (the end time is guessed as start + 30 min).
-- Alerts per month keep growing:
+## Pinned data
+- Vadimkin `bf0c323c` (2026-10-11 04:50 UTC).
+- JustJimer archive `7abc556b` (2026-10-11 10:07 UTC; no newer commit at 13:35 Kyiv). Re-check before the final build (user request).
+- @air_alert_ua: complete (338,360 posts, stopped 2026-09-07).
+- @war_monitor: complete to 2026-10-11 (46,492 posts).
 
-  | Month | Alerts |
-  |---|---|
-  | 2025-09 | 2,167 |
-  | 2026-03 | 3,350 |
-  | 2026-08 | 3,916 |
-  | 2026-09 | 4,438 |
+## Key results (validation, Aug 16 – Sep 12 2026; test untouched)
+- New alert within 1h: AUC 0.85 (raion) / 0.87 (oblast); skill vs the same-hour rule 0.19 / 0.21; well calibrated.
+- New alert within 3h: AUC 0.85 / 0.87; skill 0.33 / 0.37 (accepted history windows).
+- Timing (3h Kyiv blocks): day 1 AUC 0.80 vs 0.76 for the pattern rule; days 3–7 no better than the pattern (D45).
+- 24h count/hours: 8–10% smaller error than the 7-day average.
+- Duration range (25–75%): covers 45% (ideal 50%) vs 41% for the simple rule.
+- Red given alert: the simple rule (raion red share 7d) AUC 0.82, best so far.
+- Telegram (@war_monitor): slightly worse on every target (D44).
 
-  This matches the new daytime drone tactic (D7).
-
-**Official dataset** (`datasets/official_data_en.csv`)
-- 299,275 alerts, 2022-03-15 → 2026-09-07. It seems to have stopped updating about 5 weeks ago.
-- Levels: oblast 130k, raion 132k, hromada 37k.
-
-**What neither dataset has**
-- No threat-type column (drone/missile).
-- No permanent sirens (Luhansk since 2022-04-04, Crimea).
-
-**Telegram @war_monitor** (checked 2026-10-11)
-- The public preview works and reaches the full history: post #1980 is from 2022-08-28; the newest post, #47555, from 2026-10-11.
-- Posts are short, real-time, in Ukrainian. They carry:
-  - the threat type: drones "БпЛА", jet drones "реактив", "Циркон", ballistic "балістика" / `🟣`, all clear "Відбій" / `⚪️`;
-  - places (oblast, city, raion names) and directions ("вектор", "курс");
-  - counts ("13х БпЛА");
-  - daily situation summaries ("Обстановка станом на 00:00"): strategic aviation, missile carriers at sea. These could help predict massive night attacks.
-- Caveats:
-  - The channel is somewhat Kyiv-centric.
-  - It has "technical works" gaps (e.g. 2026-10-10/11).
-  - Posts can be edited (we record an `edited` flag).
-- **Full scrape done:** 46,492 posts, #1 (2022-04-25) → #47555 (2026-10-11). 5.6% are edited; about 1k post numbers are missing (deleted). The channel didn't exist before 2022-04-25.
-
-**@air_alert_ua** (the source of the official dataset) stopped posting on 2026-09-07 (see D18). The cause: the yellow/red reform changed the message format on 2026-09-06.
-
-**JustJimer archive** (alerts.in.ua): raion-level data with yellow/red and air_raid vs artillery, complete from 2026-09-06 12:00 UTC to today. It matches the official data 97% on the overlap. **This fills the gap** (D19).
+## Reports
+`reports/`: `data_quality.md`, `air_alert_ua_messages.md`, `spatial_options.md`, `validation.md`, `training_window.md`, `weak_targets.md`, `telegram_ablation.md`, `timing_validation.md`, `map_preview.png`, `site_preview_sample.png`.
+Plain-English explanation of the whole method: **`docs/how_it_works.md`**.
 
 ## Open questions for the user
-1. Who creates the Netlify site (your account)? When?
-2. alerts.in.ua API key: still pending. It's no longer blocking, thanks to the JustJimer archive.
-
-## Answered
-- D4 accepted. The other Proposed decisions get settled during implementation.
-- Deadline: Monday 2026-10-12 23:59 **Kyiv time**.
-- Git: work on a branch; on "merge in main" → push, PR, merge.
-- Python libraries: installation approved.
-- Telegram: option A (public web preview) approved, with t.me allowed.
-
-## Latest results (validation, 4 weekly folds, Aug 16 – Sep 12 2026)
-- New alert within 1h: LightGBM AUC 0.84 (raion) / 0.86 (oblast); skill vs the same-hour rule 0.18 / 0.21; well calibrated.
-- New alert within 3h: AUC 0.85 / 0.86; skill 0.33 / 0.36.
-- 24h timing blocks: AUC 0.80–0.86 (vs 0.72 for the simple rule).
-- 24h count/hours and duration: barely better than persistence.
-- Red given alert: the simple rule (raion red share 7d) AUC 0.82 beats the full models.
+1. D45: accept the timing hybrid (model for days 1–2, pattern for days 3–7)?
+2. Netlify: the user has an account; deploy together later today.
