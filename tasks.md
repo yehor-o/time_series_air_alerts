@@ -18,7 +18,7 @@ Every task ends with a short explanation for the user of what was done and why.
 - [x] Spatial options compared: raion model + oblast model (D16 results, D22)
 - [x] First yellow/red statistics (D21)
 - [x] @war_monitor full history scraped (46,492 posts)
-- [ ] **P0** @air_alert_ua full history scrape *(running overnight, nearly done)*
+- [x] @air_alert_ua full history scraped: 338,360 posts, 2022-03-14 → 2026-09-07 (`reports/air_alert_ua_messages.md`)
 - [x] Label every official row by its message type; keep only air raids (D25, D28) — `src/alerts/telegram.py`
 - [x] Lviv/Volyn investigated: a volunteer-side quirk, not an archive gap (D30)
 - [x] Holes verified with @war_monitor; Oct 7 masked for raions (D29)
@@ -51,13 +51,13 @@ Every task ends with a short explanation for the user of what was done and why.
 - [x] Chronological splits: 4 weekly walk-forward folds; test from 2026-09-13 (D31)
 
 ## Phase 4 — Models and evaluation (approved)
-- [ ] **P0** Baselines: same hour last 14 days, persistence
-- [ ] **P0** Logistic regression, LightGBM (raion and oblast, per horizon)
-- [ ] **P0** Duration model (1h/3h) and count/hours/timing models (24h)
-- [ ] **P0** Yellow/red model (reform period only)
-- [ ] **P1** Tune the training-window length and recency weighting (D7)
-- [ ] **P0** Evaluation report: Brier, log-loss, AUC, calibration; day vs night; per oblast
-- [ ] **P0** One final run on the test period; export JSON for the site
+- [x] Baselines: same hour last 14 days, persistence (validation)
+- [x] Logistic regression, LightGBM (raion and oblast, per horizon) — validation done
+- [x] Duration model (1h/3h) and count/hours/timing models (24h) — validation done (duration and count are weak, D35)
+- [x] Yellow/red model (reform period only) — validation done; the simple rule wins (D35)
+- [x] Training-window length compared: 12 months best (recency weighting not tried)
+- [x] Validation report: Brier, log-loss, AUC, calibration, day vs night (`reports/validation.md`); per-oblast breakdown still to do
+- [ ] **P0** One final run on the test period *(waiting for the user's go)*; export JSON for the site
 
 ## Phase 5 — Website (Netlify)
 - [ ] **P0** Static English site: raion map + oblast view, horizon switch, "chance of alert" and "chance it's red"

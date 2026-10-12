@@ -290,3 +290,8 @@ Only `air_raid` rows define targets. The typed threats are **kept as possible fe
 - "Same hour, last N days" rates use the UTC hour (the DST shift is ignored; it's a 1-hour offset twice a year).
 - LightGBM settings are fixed and not tuned yet: 400 trees, learning rate 0.05, 63 leaves, min 500 rows per leaf.
 - Logistic regression gets log-transformed counts and sine/cosine of hour and weekday.
+
+## D35. Model choice after validation — Proposed (see reports/validation.md)
+- New-alert probabilities (1h, 3h; raion and oblast) and 24h timing: **LightGBM**, trained on the last 12 months.
+- 24h count and hours, and duration: LightGBM is only marginally better than persistence. Show them as **typical ranges** (e.g. "usually 30–120 min"), not precise numbers. Candidates for improvement: quantile models, features from Telegram.
+- Red given alert: the **simple rule "raion red share in the last 7 days"** or the 5-feature logistic regression. Full models overfit the ~2–3 weeks of reform data.

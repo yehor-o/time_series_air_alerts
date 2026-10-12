@@ -2,11 +2,14 @@
 
 _Last updated: 2026-10-11 (Sun)_
 
-## Status
-**Planning complete; the data pipeline is approved and starts next session/turn.**
-- Accepted: D19 (archive as gap filler), D22 (raion + oblast models), D23 (targets), D24 (yellow/red approach), D25 (artillery: label by message type, keep air raids only), D26 (verify volunteer patches).
-- Running: the @air_alert_ua full scrape (4 parallel id ranges in `data/raw/telegram/air_alert_ua/`, about 50% done at 2026-10-11 evening, resumable).
-- Waiting on the scrape: labelling official rows (D25) and the Lviv/Volyn investigation (D26).
+## Status (2026-10-12 morning)
+**Tasks 1 and 2 of the overnight plan are done. Waiting for the user's review and the "go" for the final test run.**
+- Data pipeline: `scripts/download_data.py` → `scripts/build_alert_table.py` → `scripts/build_panel.py` (outputs in `data/processed/`, parquet not in git).
+- @air_alert_ua fully scraped. 99.99% of official rows labelled by message type; 22,273 artillery rows (7.4%) excluded.
+- Leakage tests: 7 passing (`tests/test_leakage.py`).
+- Validation: `scripts/validate_models.py` → `reports/validation.md`. The test period (from 2026-09-13) is untouched.
+- New decisions D27–D35 are **Proposed**, waiting for review.
+- Next: user review → final test run → JSON export → website (Netlify) → Telegram ablation.
 
 ## What exists
 - `CLAUDE.md`: rules, including the no-leakage protocol and the working agreement (ask before acting, explain everything)
@@ -16,6 +19,11 @@ _Last updated: 2026-10-11 (Sun)_
 - `requirements.txt` + `.venv/` (local only): Python 3.13 with pandas, numpy, scikit-learn, LightGBM, requests, bs4, lxml, matplotlib, pyarrow, pytest
 - `scripts/scrape_telegram.py`: scraper for public Telegram channels → `data/raw/telegram/` (gitignored); supports parallel id ranges
 - `scripts/explore_spatial_options.py` + `reports/spatial_options.md`: oblast vs raion comparison (D16 results)
+- `scripts/download_data.py`, `data/versions.json`: datasets at pinned commits (Vadimkin `bf0c323c`, JustJimer `7abc556b`)
+- `src/alerts/` (sources, telegram, build, features) + `scripts/build_alert_table.py`, `scripts/build_panel.py`: the pipeline
+- `tests/test_leakage.py`: leakage tests
+- `scripts/validate_models.py`: walk-forward validation of all models
+- Reports: `data_quality.md`, `air_alert_ua_messages.md`, `validation.md`, `validation_metrics.json`
 
 ## Facts established so far
 Pinned versions used in the explorations:
@@ -72,5 +80,9 @@ Pinned versions used in the explorations:
 - Python libraries: installation approved.
 - Telegram: option A (public web preview) approved, with t.me allowed.
 
-## Latest results (exploration, not final)
-Spatial comparison on 2026-08-10 → 09-06 (D16 results): raion model 1h AUC 0.839 / 3h AUC 0.849 at raion level; oblast model 1h AUC 0.855 / 3h AUC 0.864 at oblast level.
+## Latest results (validation, 4 weekly folds, Aug 16 – Sep 12 2026)
+- New alert within 1h: LightGBM AUC 0.84 (raion) / 0.86 (oblast); skill vs the same-hour rule 0.18 / 0.21; well calibrated.
+- New alert within 3h: AUC 0.85 / 0.86; skill 0.33 / 0.36.
+- 24h timing blocks: AUC 0.80–0.86 (vs 0.72 for the simple rule).
+- 24h count/hours and duration: barely better than persistence.
+- Red given alert: the simple rule (raion red share 7d) AUC 0.82 beats the full models.
