@@ -437,3 +437,15 @@ The site is first built on the pinned data: forecast moment 2026-10-11 09:00 UTC
 - **Only `site/data/` is committed by the workflow, straight to `main`** (the only exception to the "never push to main" rule, approved by the user); Netlify redeploys. A failed run commits nothing.
 - The week view is issued at 00:00 / 12:00 Kyiv (the timing model's training setup); the history strip uses a rolling log of the site's own hourly forecasts; the Forecast check archives the 00:00 / 12:00 forecasts.
 - Alternatives: every 3 hours (stale "next hour" forecasts), a separate `live` branch for Netlify (cleaner, but one more setting).
+
+---
+# Planned after the deadline (2026-10-12) — all Proposed; plans in docs/next_steps.md
+
+## D53. Faster hourly runs: rolling API refresh — Proposed
+Every hourly run: active alerts (1 request) + history for 6 of the 24 regions, rotating (each region fully refreshed every 4 h); the archive persists between runs. Switch only if an offline replay shows the 1 h / 3 h probabilities change by < ~1 percentage point on average; otherwise rotate 12 regions. Expected run time ~5 min instead of ~15. Depends on D54 (persisted archive).
+
+## D54. Keep the repository small — Proposed
+Live `site/data/` on a single-commit `live-data` branch (Netlify copies it at build time, triggered by a build hook in the GitHub secret `NETLIFY_BUILD_HOOK`), so `main` only receives code and the D52 exception ends; models as GitHub Release files instead of git; forecast-check archive keeps 60 days. Today's growth would be ~70 MB/month (~45 MB hourly data commits + 25 MB models).
+
+## D55. Neighbouring-district inputs — Proposed
+New inputs from the districts that share a border (under alert now, new alerts next door in the last 1/3/24 h, busiest neighbour), with leakage tests and the same validation weeks as before. The old test weeks are used up, so a fair test needs 2–4 weeks of new data (from ~26 Oct / ~9 Nov). About 5 h of work.

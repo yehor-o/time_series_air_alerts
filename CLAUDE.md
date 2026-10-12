@@ -6,7 +6,7 @@ Read this file first in every session. Then read `Project-State.md`, `tasks.md` 
 
 We forecast **air raid alerts in each Ukrainian district (raion) and oblast**. For the next 1h and 3h: the chance a new alert starts and how long it will last. For the next 24h: how many alerts, how many hours under alert, and when. For alerts since the 2026-09-06 reform: the chance an alert is red (missile) vs yellow (drone). We train on the historical alert data and evaluate on the **most recent period**. We compare several models against simple baselines. Then we test whether adding Telegram data (e.g. `@war_monitor`) improves the forecasts. Results are shown on a static English website with a map of Ukraine, hosted on Netlify.
 
-**Deadline: Monday 2026-10-12, 23:59 (Kyiv time).** Scope decisions must respect this.
+**Deadline: Monday 2026-10-12, 23:59 (Kyiv time): met.** The site is live with hourly forecasts (https://air-alert-forecast-ua.netlify.app). Planned next steps: `docs/next_steps.md`.
 
 ## Working agreement with the user (MANDATORY)
 
@@ -36,7 +36,7 @@ The user owns this project and must understand and approve what happens.
 
 - Work always happens on a dedicated branch (for this session: `claude/gifted-brahmagupta-15ca07`). Commit and push there freely.
 - When the user says **"merge in main"**: push, open a PR into `main`, merge it.
-- Never push directly to `main` otherwise.
+- Never push directly to `main` otherwise. The only exception (D52): the hourly `live-forecast` workflow commits `site/data/` to `main`.
 
 ## THE core rule: no data leakage
 

@@ -121,3 +121,16 @@ What this means in plain words:
 ## 9. The forecast on the site
 
 The site shows one forecast, made at **12 Oct 2026, 12:00 Kyiv time**, from refreshed data (Vadimkin `d10c80fa`, JustJimer `c5b3bd01`, recorded in `data/versions_live.json`; D50). Every model was retrained on all data known at that moment, with the frozen settings (`scripts/predict_now.py`). The test scores stay on the pinned data (`data/versions.json`), with the test period fixed in the code (13 Sep – 11 Oct). The history strip shows forecasts of a model trained only on data before that week, and the replay shows the test-run models, so both are genuine forecasts made without knowing what happened next.
+
+## 10. Live forecasts (since 12 Oct 2026, evening)
+
+The site now updates **every hour** by itself:
+1. A GitHub Actions job reads the latest alerts from the alerts.in.ua API (the same source as the archive we trained on).
+2. It rebuilds the inputs for the latest hour and applies the **saved models**. No retraining happens here, so a run is
+   quick. Fresh data still changes every forecast, because the inputs (alerts running now, recent activity, habits, red
+   share) are recomputed from the newest alerts. The rules the models learned stay the same between retrains.
+3. It publishes the new forecast files, and Netlify updates the site.
+
+**Retraining** (re-learning the rules) happens twice a month (D51). Evidence that this is enough: one model trained before
+13 Sep kept its skill over the four test weeks. The "Forecast check" page compares every saved 00:00 / 12:00 forecast with
+what really happened, so a drop in accuracy would show up there first.
