@@ -112,3 +112,8 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
 .ckm.yes { background: #d03b3b; color: #fff; } .ckm.no { background: #2b3d5c; color: #b6c2d6; } .ckm.unk { color: #8394ad; font-weight: 400; }
 .ckm.yes2 { background: #1d5a3a; color: #bff0d2; } .ckm.out { background: #4b2630; color: #f3b9b9; }
 .chart .tile .v { font-size: 19px; }
+/* language switch */
+.langsw { display: flex; gap: 2px; margin-left: auto; margin-right: 12px; }
+.langsw button { background: transparent; color: var(--text-muted); border: 1px solid var(--line); padding: 4px 8px; font-size: 12px; cursor: pointer; }
+.langsw button:first-child { border-radius: 6px 0 0 6px; } .langsw button:last-child { border-radius: 0 6px 6px 0; }
+.langsw button.on { background: var(--surface); color: var(--text-primary); font-weight: 600; }
