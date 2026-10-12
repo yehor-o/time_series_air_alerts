@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=1280">
+  <title>Time-Series Air Alert Forecast, Ukraine (demo)</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+  <div class="brand">
+    <span class="flag" aria-hidden="true"></span>
+    <div>
+      <h1>Time-Series Air Alert Forecast, Ukraine <span class="demo">demo</span></h1>
+      <div class="sub" id="asof">Loading…</div>
+    </div>
+  </div>
+  <nav id="tabs">
+    <button data-page="map" class="on">Map</button>
+    <button data-page="replay">Replay</button>
+    <button data-page="quality">How good is it?</button>
+    <button data-page="about">About</button>
+  </nav>
+</header>
+<div id="sample-banner" hidden>SAMPLE DATA: the numbers on this page are placeholders, not forecasts.</div>
+<div id="warn">Demo only, not an official warning system. Always follow official air raid alerts.</div>
+
+<main>
+  <!-- MAP -->
+  <section id="page-map" class="page on">
+    <div class="mapwrap">
+      <div id="map"></div>
+      <div class="controls">
+        <div class="group"><span class="lbl">View</span>
+          <button data-level="raion" class="on">Districts</button><button data-level="oblast">Oblasts</button></div>
+        <div class="group"><span class="lbl">Forecast</span>
+          <button data-h="p1" class="on">Next 1h</button><button data-h="p3">Next 3h</button><button data-h="block">By time block</button></div>
+        <div class="group" id="blockpicker" hidden>
+          <div id="daypick"></div><div id="blockpick"></div>
+        </div>
+      </div>
+      <div class="legend" id="legend"></div>
+      <div class="hover" id="hover" hidden></div>
+    </div>
+    <aside id="panel"><div class="empty">Click a district or oblast on the map to see its forecast.</div></aside>
+  </section>
+
+  <!-- REPLAY -->
+  <section id="page-replay" class="page">
+    <div class="mapwrap">
+      <div id="rmap"></div>
+      <div class="legend" id="rlegend"></div>
+    </div>
+    <aside id="rpanel">
+      <h2>Replay of the test weeks</h2>
+      <p class="muted">Every hour of the test period, the colour shows what the model predicted for the next 3 hours,
+        using only data available at that moment. A white outline marks districts where an alert actually started
+        in those 3 hours.</p>
+      <div class="rtime" id="rtime"></div>
+      <input type="range" id="rslider" min="0" value="0">
+      <div class="rbtns"><button id="rplay">▶ Play</button><button id="rstep">+1 h</button>
+        <select id="rspeed"><option value="400">Slow</option><option value="150" selected>Normal</option><option value="50">Fast</option></select></div>
+      <div id="rstats"></div>
+    </aside>
+  </section>
+
+  <!-- QUALITY -->
+  <section id="page-quality" class="page doc"><div id="quality"></div></section>
+
+  <!-- ABOUT -->
+  <section id="page-about" class="page doc">
+    <div class="docbody">
+      <h2>What this is</h2>
+      <p>A demo of time-series forecasting for air raid alerts in Ukraine, per district (raion) and per oblast.
+        Every hour the models answer: <b>how likely is a new alert to start here in the next hour / 3 hours?</b>
+        They also estimate how long it would last, whether it is likely to be <b>red</b> (missiles, ballistic, massed attacks)
+        or <b>yellow</b> (drones), and in which 3-hour blocks (Kyiv time) of the next 7 days alerts are most likely.</p>
+      <h2>How it works</h2>
+      <p>The training data is a table with one row per district per hour. Each row holds what was known at that hour and
+        what happened afterwards. A gradient-boosted decision-tree model (LightGBM) learns from millions of such rows
+        which situations led to alerts. Inputs, all computed only from data <i>before</i> the forecast time:</p>
+      <ul>
+        <li><b>This district now:</b> is an alert active, hours since the last alert started and ended.</li>
+        <li><b>Recent activity:</b> alerts and hours under alert in the last 1, 3, 6, 24 hours and 7 days.</li>
+        <li><b>Habits:</b> how often an alert started at this clock hour on recent days; share of recent nights and days with alerts.</li>
+        <li><b>Its oblast and the whole country:</b> share of districts under alert now, recent alerts nearby and nationwide.</li>
+        <li><b>Calendar:</b> hour and weekday in Kyiv time; which oblast it is.</li>
+      </ul>
+      <h2>The no-leakage rule</h2>
+      <p>A forecast made at time t uses only information published before t. An alert still running at t is known only as
+        "started, still active"; its end is not used. Models are trained on the past and scored on later weeks they never saw.</p>
+      <h2>Data</h2>
+      <ul>
+        <li>Official alerts 2022-03 → 2026-09-07: <a href="https://github.com/Vadimkin/ukrainian-air-raid-sirens-dataset">Vadimkin/ukrainian-air-raid-sirens-dataset</a>
+          (parsed from the @air_alert_ua Telegram channel; artillery and other non-air-raid warnings removed).</li>
+        <li>Alerts since 2026-09-06 with yellow/red levels: <a href="https://github.com/JustJimer/ukraine-air-alert-stats">JustJimer/ukraine-air-alert-stats</a>
+          (daily archive of the <a href="https://alerts.in.ua">alerts.in.ua</a> API).</li>
+        <li>Threat context: the public Telegram channel @war_monitor (tested as an extra input, see "How good is it?").</li>
+        <li>District boundaries: OCHA administrative boundaries (via the Vadimkin repository).</li>
+      </ul>
+      <h2>Disclaimer</h2>
+      <p>This is a student demo. It is <b>not</b> an official warning system and must not be used for safety decisions.
+        Always follow official air raid alerts.</p>
+    </div>
+  </section>
+</main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
