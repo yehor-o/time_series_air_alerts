@@ -22,7 +22,8 @@ _Last updated: 2026-10-12, ~17:30 Kyiv (session 2)._ Deadline: **today 23:59 Kyi
 - **Website shows REAL data** (`scripts/predict_now.py` + `scripts/export_site.py`): forecast moment 2026-10-11 09:00 UTC (12:00 Kyiv), pinned data. Screenshots: `reports/screens/`. 24h ranges cover 52–65% on the last validation week (ideal 50%).
 - **"How good is it?" page** merged with the model comparison: 8 chart sections from `metrics.json` (test results), weak spots marked "lost" (D48).
 - **README** and final docs done (`README.md`, `docs/how_it_works.md` sections 8–9, About page).
-- **NOT done:** merge into main, Netlify deploy (option A, `air-alert-forecast-ua`), live URL in README/About, optional data refresh (D50).
+- **LIVE:** https://air-alert-forecast-ua.netlify.app (Netlify, publishes `site/` from `main` on every merge). PR #4 merged.
+- **NOT done:** optional data refresh (D50).
 
 ## Data snapshots (all downloads complete)
 - **In git (D15):** `data/telegram/*.jsonl.gz` and `data/labels/official_labels.parquet`. **Complete** downloads:
