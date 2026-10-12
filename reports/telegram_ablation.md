@@ -32,3 +32,32 @@ model
 without Telegram      1.475      1.914
 with Telegram         1.499      1.953
 ```
+
+## Oblast
+
+New alert within 1h:
+
+```
+                   Brier  log-loss  ROC-AUC  PR-AUC  skill vs same-hour
+model                                                                  
+without Telegram  0.0799    0.2603   0.8659  0.4870              0.2139
+with Telegram     0.0805    0.2636   0.8594  0.4786              0.2076
+```
+
+New alert within 3h:
+
+```
+                   Brier  log-loss  ROC-AUC  PR-AUC  skill vs same-hour
+model                                                                  
+without Telegram  0.1269    0.3915   0.8701  0.7240              0.3657
+with Telegram     0.1290    0.3970   0.8626  0.7139              0.3530
+```
+
+Next 24h, number of alerts and hours under alert (average error):
+
+```
+                  count MAE  hours MAE
+model                                 
+without Telegram      1.639      2.015
+with Telegram         1.666      2.055
+```
