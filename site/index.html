@@ -103,8 +103,12 @@
         because current conditions say little about next week. The blocks are made at 00:00 and 12:00, so in between they can be older
         than the hourly numbers; the side panel marks where they overlap.</p>
       <p><b>Under alert right now.</b> A district that is under alert at the forecast moment is striped red on the map. Its chances are for a
-        <i>new</i> alert after the current one ends. If one alert has been running for 24 hours or more (this can happen when a front-line
-        or border community inside the district keeps the alert on), the district is shown as a continuous alert and no forecast is given.</p>
+        <i>new</i> alert after the current one ends. If one alert for the whole district has been running for 24 hours or more (this happens in front-line
+        areas), the district is shown as a continuous alert and no forecast is given.</p>
+      <p><b>Local alerts.</b> An alert for one community (hromada) or city counts only for that community, not for its whole district or oblast.
+        Some front-line communities stay under one alert for months (e.g. Lyptsi hromada near Kharkiv). Such alerts are shown as a note in the
+        side panel, and the model uses them as a signal, but they never make the whole district "under alert". (Until 13 Oct 2026 they did;
+        that made Kharkivskyi district look permanently under alert. Fixed and the models retrained.)</p>
       <p><b>Red or yellow</b> uses a simple rule: the district's share of red alerts over the last 7 days. It predicted the level better
         than the machine-learning models, which had only a few weeks of data with levels to learn from (levels exist since 6 Sep 2026).
         The side panel shows how many alerts the share is based on. When all of them were yellow (or all red), it shows the count, e.g.
@@ -163,8 +167,12 @@
         спадає до 0%, бо поточна ситуація мало що каже про наступний тиждень. Блоки роблять о 00:00 і 12:00, тож між цими моментами вони
         можуть бути старішими за щогодинні числа; бічна панель позначає, де вони перетинаються.</p>
       <p><b>Тривога просто зараз.</b> Район, де в момент прогнозу триває тривога, на мапі заштрихований червоним. Його ймовірності стосуються
-        <i>нової</i> тривоги після завершення поточної. Якщо одна тривога триває 24 години або довше (так буває, коли прифронтова чи
-        прикордонна громада в районі тримає тривогу), район позначено як безперервну тривогу, і прогноз не показано.</p>
+        <i>нової</i> тривоги після завершення поточної. Якщо одна тривога для всього району триває 24 години або довше (так буває у
+        прифронтових районах), район позначено як безперервну тривогу, і прогноз не показано.</p>
+      <p><b>Місцеві тривоги.</b> Тривога для однієї громади чи міста стосується лише цієї громади, а не всього району чи області. Деякі прифронтові
+        громади місяцями перебувають під однією тривогою (наприклад, Липецька громада біля Харкова). Такі тривоги показано приміткою в бічній
+        панелі, і модель враховує їх як сигнал, але вони ніколи не роблять весь район «під тривогою». (До 13 жовтня 2026 року робили; через це
+        Харківський район виглядав так, ніби тривога там постійна. Виправлено, моделі перенавчено.)</p>
       <p><b>Червона чи жовта</b> визначається простим правилом: частка червоних тривог у районі за останні 7 днів. Воно передбачало рівень
         краще за моделі машинного навчання, яким бракувало даних з рівнями для навчання (рівні існують з 6 вересня 2026).
         Бічна панель показує, на скількох тривогах ґрунтується частка. Якщо всі вони були жовтими (або всі червоними), сайт показує

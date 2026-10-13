@@ -243,8 +243,8 @@ Script: `scripts/explore_spatial_options.py`. Full tables: `reports/spatial_opti
 ---
 # Overnight decisions (2026-10-11/12) — all Proposed, for the user's review
 
-## D27. What counts as an alert in a raion — Proposed
-- A raion is "under alert" when there is an air-raid alert for the raion itself, for its whole oblast (disaggregation, D22), or for a hromada or city inside it (e.g. "м. Харків" → Kharkivskyi raion). In words: "an alert somewhere in the raion".
+## D27. What counts as an alert in a raion — Proposed (first bullet replaced by D58, 2026-10-13)
+- ~~A raion is "under alert" when~~ (replaced by D58: hromada/city alerts no longer count for the raion) A raion is "under alert" when there is an air-raid alert for the raion itself, for its whole oblast (disaggregation, D22), or for a hromada or city inside it (e.g. "м. Харків" → Kharkivskyi raion). In words: "an alert somewhere in the raion".
 - Official rows whose message could not be found (`unknown`): kept at oblast/raion level, where artillery and threat messages never occur, and dropped at hromada level, where most messages are artillery threats. Counts are in `reports/data_quality.md`.
 - Name fixes: three raions renamed in 2024 (Володимирський, Шептицький, Берестинський) are mapped to the official old names, and the 7 archive cities to their raions (`src/alerts/sources.py`).
 
@@ -462,7 +462,7 @@ hour is already in `site/data/meta.json` on `main` skips the pipeline. Costs onl
 Alternative not done: an outside hourly trigger (e.g. cron-job.org calling `workflow_dispatch`) needs a new site, an account
 and a GitHub token, so it is left to the user.
 
-## D58. Local (hromada/city) alerts are not district alerts — Proposed (2026-10-13)
+## D58. Local (hromada/city) alerts are not district alerts — Accepted (user, 2026-10-13: "Approve both. Go ahead and implement")
 **Bug.** `raion_events` turns every hromada/city air-raid alert into an alert for its whole raion (and so its oblast).
 A few front-line hromadas are under one alert for months: Lyptsi hromada (Kharkivskyi raion) from 2024-05-12 for ~14,500 h
 (official data) and again since 2026-03-10 (API); Pokrovska and Chervonohryhorivska hromadas (Nikopolskyi) since
@@ -481,6 +481,22 @@ A few front-line hromadas are under one alert for months: Lyptsi hromada (Kharki
 Alternatives: count local alerts only for their first 12 h (simpler, but still mixes two meanings); drop local alerts
 (loses ~1,500 h of real local alerts since 6 Sep); exclude a hand-picked list of hromadas (comes back with the next one).
 
+## D59. Outages and stuck alerts in the official data — Proposed (2026-10-13, found by the D58 guards)
+- **Outage.** The official feed is silent nationwide from 2026-08-29 04:55 to 2026-09-02 13:48 UTC (105 h) while the volunteer source
+  logs 743 alerts (~7/h). Alerts open at its start got their end only when the feed came back, so 10 oblasts looked under alert for
+  ~4.8 days. Rule: a nationwide official silence of >= 24 h with >= 2 volunteer alerts per hour is an outage (only this one in the
+  data; the next worst is 7 h with 2.9/h). Treatment as for archive holes (D26/D29): raion targets masked, official alerts running into
+  it cut at its start, oblast table patched with the volunteer alerts of the outage (outside the quirk oblasts). This window lies in
+  the validation weeks (fold of Aug 30 – Sep 5).
+- **Stuck alerts.** A lost end message leaves one alert running for days. Two found: Mukachivskyi and Berehivskyi districts
+  (Zakarpattia), 2025-11-19 08:29 -> recorded 2025-11-24 10:40 (122 h) while the three districts that started with them ended at
+  09:08 and the feed worked nationwide. A general rule would also cut real long front-line alerts (Synelnykivskyi, Sumskyi), so
+  corrections are a reviewed list, `data/fixes/stuck_alerts.csv` (each row with its evidence; the build fails if a row matches
+  nothing), and the data-quality report lists every district alert > 24 h outside the front-line/border oblasts for review.
+  Still listed and left as they are: Kyiv-oblast districts on 12–13 Sep and 23–24 Sep 2026 (24–27 h, alerts.in.ua archive).
+- Alternatives: leave the data as it is (the validation weeks would score a fake 5-day alert); drop the outage days completely
+  (loses the oblast truth that the volunteer source does have).
+
 ---
 # Planned after the deadline (2026-10-12) — all Proposed; plans in docs/next_steps.md
 
@@ -490,5 +506,5 @@ Every hourly run: active alerts (1 request) + history for 6 of the 24 regions, r
 ## D54. Keep the repository small — Proposed
 Live `site/data/` on a single-commit `live-data` branch (Netlify copies it at build time, triggered by a build hook in the GitHub secret `NETLIFY_BUILD_HOOK`), so `main` only receives code and the D52 exception ends; models as GitHub Release files instead of git; forecast-check archive keeps 60 days. Today's growth would be ~70 MB/month (~45 MB hourly data commits + 25 MB models).
 
-## D55. Neighbouring-district inputs — Proposed
+## D55. Neighbouring-district inputs — Accepted (user, 2026-10-13, together with D58)
 New inputs from the districts that share a border (under alert now, new alerts next door in the last 1/3/24 h, busiest neighbour), with leakage tests and the same validation weeks as before. The old test weeks are used up, so a fair test needs 2–4 weeks of new data (from ~26 Oct / ~9 Nov). About 5 h of work.

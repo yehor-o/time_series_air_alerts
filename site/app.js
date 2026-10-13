@@ -112,6 +112,17 @@ function contTxt(i) {  // "Continuous alert for 7+ days"
   if (i.week) return T("Continuous alert for 7+ days", "Безперервна тривога понад 7 днів");
   return T(`Continuous alert since ${fDayTime.format(i.since)}`, `Безперервна тривога з ${fDayTime.format(i.since)}`);
 }
+function localTxt(n, long = false) {  // D58: hromada/city alerts inside the unit are notes, not the unit's own alert
+  const L = n?.local || [];
+  if (!L.length) return "";
+  const fmt = (x) => { const d = new Date(x.since); return sameDay(d) ? fHour.format(d) : fDayTime.format(d); };
+  const one = (x) => `${UK ? x.h_uk : x.h} ${T("since", "з")} ${fmt(x)}`;
+  const list = L.slice(0, 3).map(one).join("; ") + (L.length > 3 ? T(` and ${L.length - 3} more`, ` і ще ${L.length - 3}`) : "");
+  const head = T(`Local alert: ${list}`, `Місцева тривога: ${list}`);
+  if (!long) return head;
+  return `${head}. ${T("It covers only that community, not the whole area, so it is not counted as an alert here; the model uses it as a signal.",
+    "Вона стосується лише цієї громади, а не всієї території, тому тут не вважається тривогою; модель враховує її як сигнал.")}`;
+}
 function onShort(i) {  // short forms for the Major-cities card
   if (i.continuous) return i.week ? T("alert for 7+ days", "тривога понад 7 днів") : T(`alert since ${fDay.format(i.since)}`, `тривога з ${fDay.format(i.since)}`);
   return i.since ? T(`alert since ${fHour.format(i.since)}`, `тривога з ${fHour.format(i.since)}`) : T("under alert now", "зараз тривога");
@@ -253,6 +264,7 @@ function showHover(e, props) {
     if (i.continuous) h.innerHTML = `${name}<br><span class="now-on">${contTxt(i)}</span><br>${T("No forecast: a new alert cannot start while this one runs.", "Прогнозу немає: нова тривога не може початися, поки триває ця.")}`;
     else h.innerHTML = `${name}${i.active ? `<br><span class="now-on">${onTxt(i)}</span>` : ""}<br>${T(`${pct(valueFor(props))} chance of a ${horizonLabel()}`, `Ймовірність ${horizonLabel()}: ${pct(valueFor(props))}`)}${i.active ? T(", after the current alert ends", ", після завершення поточної") : ""}`;
   }
+  if (props.status === "forecast") { const n = S.D.now[S.level]?.[unitKey(props)]; if (n?.local) h.innerHTML += `<br><span class="muted">${localTxt(n)}</span>`; }
   const pt = e.containerPoint;
   h.style.left = `${pt.x + 14}px`; h.style.top = `${pt.y + 10}px`; h.hidden = false;
 }
@@ -326,15 +338,16 @@ function renderPanel() {
   const head = `<h2>${unitName(id)}</h2><div class="muted">${T(`${lv === "raion" ? "District" : "Oblast"} forecast, made ${made} Kyiv time`, `Прогноз для ${lv === "raion" ? "району" : "області"}, зроблено ${made} за Києвом`)}</div>`;
   const hist = `<h3>${T("Last 7 days: actual alerts vs forecast", "Останні 7 днів: фактичні тривоги і прогноз")}</h3><div id="hstrip"></div>`;
   if (i.continuous) {  // a new-alert forecast means nothing while one alert runs for days: show none
-    P.innerHTML = `${head}<div class="now-on big">${contTxt(i)}</div>
-      <p class="note">${T(`One alert has been running here for ${CONT_H} hours or more. This can happen when a front-line or border community inside the ${unitW} keeps the alert on. A new alert cannot start while it runs, so no forecast is shown.`,
-        `Одна тривога триває тут ${CONT_H} годин або довше. Так буває, коли прифронтова чи прикордонна громада в ${unitW} тримає тривогу. Поки вона триває, нова тривога не може початися, тому прогноз не показано.`)}</p>${hist}`;
+    P.innerHTML = `${head}<div class="now-on big">${contTxt(i)}</div>${n.local ? `<p class="note local">${localTxt(n, true)}</p>` : ""}
+      <p class="note">${T(`One alert for the whole ${unitW} has been running for ${CONT_H} hours or more (this happens in front-line areas). A new alert cannot start while it runs, so no forecast is shown.`,
+        `Одна тривога для всієї території в ${unitW} триває ${CONT_H} годин або довше (так буває у прифронтових районах). Поки вона триває, нова тривога не може початися, тому прогноз не показано.`)}</p>${hist}`;
     drawPanelHistory();
     return;
   }
   const [rv, rk] = redTile(n, i, lv);
   const older = +S.tW !== +S.tF, wMade = fHour.format(S.tW);
   P.innerHTML = `${head}
+    ${n.local ? `<p class="note local">${localTxt(n, true)}</p>` : ""}
     ${i.active ? `<div class="now-on big">${onTxt(i)} ${T("(Kyiv time). The chances below are for a new alert after this one ends.", "(за Києвом). Ймовірності нижче стосуються нової тривоги після завершення цієї.")}</div>` : ""}
     <h3>${T("Right now · updated every hour", "Зараз · оновлюється щогодини")}</h3>
     <div class="hero"><div class="hero-v">${pct(n.p3)}</div>
@@ -583,6 +596,9 @@ function renderQuality() {
       жодна модель і жодне проєктне рішення. Кожну модель навчено лише на ранішніх даних, кожен прогноз використовував лише інформацію,
       доступну на свій момент, і тест запускали <b>один раз</b>. Усі рішення зафіксували до нього й нічого не змінювали після результатів,
       зокрема у двох місцях, де наша модель програла (позначено ${lost} нижче).</p>
+    <p class="note">Ці результати стосуються версії на дедлайн (12 жовтня). 13 жовтня дані виправлено (тривога однієї громади більше не
+      вважається тривогою всього району; прогалину офіційних даних 29 серпня – 2 вересня позначено як невідому) і моделі перенавчено. Тестові
+      тижні вже використано, тому виправлену версію буде чесно перевірено на нових тижнях, коли накопичиться 2–4 тижні нових даних.</p>
     <p><b>AUC</b>: ймовірність, що випадкова година з новою тривогою отримала вищий прогноз, ніж випадкова година без неї (0,5 = вгадування,
       1 = ідеально). <b>Перевага (skill)</b>: наскільки менші помилки прогнозу (оцінка Брієра), ніж у простого правила «як часто тривога
       починалася в цю годину доби протягом останніх 14 днів» (0 = не краще, 0,3 = на 30% менші, нижче 0 = гірше). На графіках
@@ -643,6 +659,9 @@ function renderQuality() {
       no design choice had seen. Every model was trained only on earlier data, every forecast used only information available at its
       time, and the test was run <b>once</b>. All choices were frozen before it, and nothing was changed after seeing the results, including
       the two places where our model lost (marked ${lost} below).</p>
+    <p class="note">These results are for the deadline version (12 Oct). On 13 Oct the data was corrected (an alert for one community no
+      longer counts as an alert for its whole district; the official-data outage of 29 Aug – 2 Sep is marked as unknown) and the models were
+      retrained. The test weeks are already used, so the corrected version will get a fair test on new weeks once 2–4 weeks of new data exist.</p>
     <p><b>AUC</b>: the chance that a random hour with a new alert got a higher forecast than a random hour without one (0.5 = guessing, 1 = perfect).
       <b>Skill</b>: how much smaller the forecast errors (Brier score) are than the simple rule "how often did an alert start at this clock hour on
       each of the last 14 days" (0 = no better, 0.3 = 30% smaller, below 0 = worse). In the charts, <span class="chip-b">blue</span> is the method

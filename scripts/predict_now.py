@@ -9,6 +9,7 @@ Per raion and oblast:
   week       P(new alert) in each of the next 56 Kyiv 3-hour blocks: blend model/pattern, w = 1 - lead/72h (D45)
   next24     the first 8 of those blocks
   red        share of red among the unit's alerts that started in the last 7 days (D35); if none, the national share
+  local      hromada/city alerts running at t inside the unit (D58): shown as notes, never as the unit's own alert
 Also: coverage of the 24h ranges on the last validation week (6-12 Sep; the test weeks are not used, D49).
 
 Also: history_pred_{level} = hourly 3h forecasts for the 7 days before t, from models trained before that week.
@@ -39,12 +40,34 @@ import pandas as pd
 from build_panel import red_features
 from compare_telegram import FIRST, training
 from src.alerts.timing import TIMING_EXTRA, blend_timing, issue_times, timing_rows
-from validate_models import BASE_FEATS, PARENT_FEATS, lgb_cls, lgb_reg
+from src.alerts.translit import hromada_en, hromada_uk
+from validate_models import BASE_FEATS, LOCAL_FEATS, NB_FEATS, NB_FEATS_RAION, PARENT_FEATS, lgb_cls, lgb_reg
 
 P, REP = Path("data/processed"), Path("reports")
 TUNED = json.loads((REP / "tuning.json").read_text())
 VAL_WEEK = (pd.Timestamp("2026-09-06", tz="UTC"), pd.Timestamp("2026-09-13", tz="UTC"))  # last validation week
 MOD = Path("models")
+# Extra input groups kept after the validation comparison (reports/local_neighbours_ablation.md, D58/D55): a group is
+# used only if it won there. The saved models record their inputs in models/meta.json ("features").
+EXTRA = {"raion": LOCAL_FEATS + NB_FEATS_RAION, "oblast": LOCAL_FEATS + NB_FEATS}
+
+
+def model_feats(level, meta=None):
+    if meta and "features" in meta:
+        return meta["features"][level]
+    return BASE_FEATS + (PARENT_FEATS if level == "raion" else []) + EXTRA[level]
+
+
+def running_local(t, level):
+    """Local alerts running at t (started before t, not ended by t), per unit."""
+    loc = pd.read_parquet(P / "alerts_local.parquet")
+    loc = loc[(loc.start < t) & (loc.end > t)].sort_values("start")
+    unit = loc.oblast + "|" + loc.raion if level == "raion" else loc.oblast
+    out = {}
+    for u, r in zip(unit, loc.itertuples()):
+        out.setdefault(u, []).append({"h": hromada_en(r.hromada), "h_uk": hromada_uk(r.hromada),
+                                      "since": r.start.isoformat()})
+    return out
 
 
 def save_model(m, name):
@@ -92,7 +115,9 @@ def main(mode="full"):
         start = (t - pd.Timedelta("400D") if level == "raion" else FIRST) if mode != "predict" else t - pd.Timedelta("2D")
         df = pan[pan.time >= start].copy()
         df["oblast_code"] = df.oblast.astype("category")
-        feats = BASE_FEATS + (PARENT_FEATS if level == "raion" else [])
+        feats = model_feats(level, meta if mode == "predict" else None)
+        if mode != "predict":
+            meta.setdefault("features", {})[level] = feats
         now = df[df.time == t].set_index("unit")
         res = pd.DataFrame(index=now.index)
         log(f"{level}: mode {mode}, forecast moment {t}, {len(now)} units")
@@ -134,7 +159,8 @@ def main(mode="full"):
 
         # week ahead (D42/D45): timing rows for the issue time t_w
         hist_days, hl = (365, None) if level == "raion" else (730, 365)
-        tf = [f for f in feats if f != "oblast_code"]
+        # the timing model keeps the inputs it was validated with (D45); the new D58/D55 inputs are not validated for it
+        tf = [f for f in BASE_FEATS + (PARENT_FEATS if level == "raion" else []) if f != "oblast_code"]
         tp = pan[pan.time >= t_w - pd.Timedelta(days=(45 if mode == "predict" else hist_days + 30))]
         parent = dict(zip(tp.unit, tp.oblast)) if level == "raion" else None
         iss = issue_times(tp.time.min() + pd.Timedelta("20D"), t_w)
@@ -175,6 +201,7 @@ def main(mode="full"):
         red = {u: red_features(ev, t, "unit", u)["unit_red_share_7d"] for u in res.index}
 
         out[level] = {}
+        loc_now = running_local(t, level)
         for u, r in res.iterrows():
             out[level][u] = {"p1": round(float(r.p1), 3), "p3": round(float(r.p3), 3), "active": int(now.at[u, "active"] > 0),
                              "red": round(float(nat if pd.isna(red[u]) else red[u]), 3),
@@ -183,6 +210,8 @@ def main(mode="full"):
                              "hrs": [round(float(np.clip(min(r.hrs_lo, r.hrs_hi), 0, 24)), 1), round(float(np.clip(max(r.hrs_lo, r.hrs_hi), 0, 24)), 1)],
                              "week": [round(float(x), 3) for x in week[u]]}
             out[level][u]["next24"] = out[level][u]["week"][:8]
+            if u in loc_now:
+                out[level][u]["local"] = loc_now[u]
         out["forecast_time_utc"] = t.isoformat()
         out["week_time_utc"] = t_w.isoformat()
         out["block_starts_utc"] = [pd.Timestamp(b).tz_localize("UTC").isoformat() if pd.Timestamp(b).tzinfo is None

@@ -1,0 +1,3 @@
+oblast,raion,start_utc,new_end_utc,evidence
+Закарпатська область,Мукачівський район,2025-11-19T08:28:49Z,2025-11-19T09:08:32Z,"started with Tiachivskyi, Khustskyi, Uzhhorodskyi (same minute); those ended 09:07-09:08; recorded end 2025-11-24 10:40 (122 h) while the feed was working nationwide (2,260 rows); no other Zakarpattia alert in between. End = latest sibling end."
+Закарпатська область,Берегівський район,2025-11-19T08:29:40Z,2025-11-19T09:08:37Z,"same event as Mukachivskyi (recorded end 2025-11-24 10:40). End = latest sibling end."

@@ -42,6 +42,9 @@ BASE_FEATS = ["active", "h_since_start", "h_since_end", "med_dur10", "starts_1h"
               "night_rate14", "day_rate14", "nat_active_share", "nat_starts_1h", "nat_starts_3h", "nat_starts_24h",
               "hour", "dow", "oblast_code"]
 PARENT_FEATS = ["parent_active_share", "parent_starts_1h", "parent_starts_3h", "parent_starts_24h"]
+LOCAL_FEATS = ["local_active_n", "local_new_active_n", "local_starts_1h", "local_starts_3h", "local_starts_24h"]  # D58
+NB_FEATS = ["nb_active_share", "nb_starts_1h", "nb_starts_3h", "nb_starts_24h", "nb_max_starts_24h"]  # D55
+NB_FEATS_RAION = NB_FEATS + ["nb_other_oblast_active_share"]
 if os.environ.get("QUICK"):  # smoke test: one fold, one window, few raions
     N_FOLDS, WINDOWS = 1, {"all (since 2024-01)": None}
 LOG_FEATS = ["h_since_start", "h_since_end", "med_dur10", "starts_24h", "starts_168h", "alert_h_24h",
