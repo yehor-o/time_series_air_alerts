@@ -8,11 +8,15 @@
 #      (workflow_dispatch from GITHUB_TOKEN is allowed to start workflows); only one waiting `next` job is kept;
 #   3. an outside hourly trigger may call workflow_dispatch too (same skip logic).
 name: live-forecast
+#
+# PAUSED 2026-10-13 (user): every site/data commit to main triggers a Netlify production deploy, which costs credits
+# (free plan: 300/month, 75% used on 13 Oct). The schedule and the chain stay off until site data no longer deploys
+# Netlify. Manual runs (Actions tab -> Run workflow) still work and cost one deploy each.
 on:
-  schedule:
-    - cron: "7 * * * *"
-    - cron: "27 * * * *"
-    - cron: "47 * * * *"
+  # schedule:
+  #   - cron: "7 * * * *"
+  #   - cron: "27 * * * *"
+  #   - cron: "47 * * * *"
   workflow_dispatch: {}
 permissions:
   contents: write
@@ -83,7 +87,7 @@ jobs:
     # Keeps the hourly chain alive, also after a failed forecast. A newer waiting job cancels an older one,
     # so there is never more than one chain.
     needs: forecast
-    if: always() && github.ref == 'refs/heads/main'
+    if: false   # paused (see top); was: always() && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 70
     concurrency:

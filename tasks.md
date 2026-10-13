@@ -21,6 +21,9 @@ Details in `Project-State.md`; plans for the next steps in `docs/next_steps.md`.
 - [x] Live-run reliability (D57, 2026-10-13): cron skipped ~11 of 12 hourly slots; added extra cron slots, a self-dispatch
       chain and a same-hour skip. Outside hourly trigger (cron-job.org + GitHub token) not set up: needs the user's account
 
+- [ ] **Hourly updates paused** (Netlify credits): serve `site/data` without a Netlify deploy per hour, then turn the
+      schedule back on (needs the user's decision)
+
 ## Next (planned, need approval; see `docs/next_steps.md`)
 1. [ ] **Task 5: keep the repo small** (D54): live data on a `live-data` branch + Netlify build hook; models as GitHub Releases; archive cleanup (~1.5–2 h)
 2. [ ] **Task 3: faster hourly runs** (D53): rolling API refresh, validated offline first (~2 h; after task 5)

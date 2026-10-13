@@ -20,6 +20,8 @@ _Last updated: 2026-10-12, ~23:40 Kyiv (session 3: site QA and website fixes)._ 
   - All of it is computed in the browser from `history.json` / `p3_log.json`; the pipeline and the forecasts are unchanged.
 
 ## Live system (D51, D52)
+- **PAUSED 2026-10-13 ~09:00 UTC** (user): Netlify credits at 75% of 300 (each `site/data` commit = one production
+  deploy). Hourly schedule and chain switched off in `live.yml`; site shows the last forecast. Fix planned: data not via deploys.
 - **Hourly** (`.github/workflows/live.yml`, ~15 min; started by cron at :07/:27/:47 UTC plus a self-dispatch chain at :05,
   D57, because GitHub skipped most cron slots on 12–13 Oct; a run whose hour is already on `main` skips itself): alerts.in.ua API (`scripts/fetch_live.py`, token in the
   GitHub secret `ALERTS_IN_UA_TOKEN`) → `build_alert_table.py` → `build_panel.py` (last 50 days) →
