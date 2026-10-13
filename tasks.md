@@ -24,13 +24,17 @@ Details in `Project-State.md`; plans for the next steps in `docs/next_steps.md`.
 - [ ] **Hourly updates paused** (Netlify credits): serve `site/data` without a Netlify deploy per hour, then turn the
       schedule back on (needs the user's decision)
 
-- [ ] **Bug D58: local alerts promoted to whole districts** (Kharkivskyi, Nikopolskyi; "continuous alert 7+ days").
-      Fix proposed in D58, waiting for the user's approval; then rebuild, retrain, validate (not in main yet)
+- [x] **Bug D58: local alerts promoted to whole districts** (Kharkivskyi, Nikopolskyi; "continuous alert 7+ days"): fixed,
+      validated, retrained (2026-10-13, work branch, not in main yet)
+- [x] D59: official-feed outage (29 Aug – 2 Sep) and stuck Zakarpattia alerts (Nov 2025) found by the new guards and corrected
+- [ ] Review D59 (Proposed) and the 4 Kyiv/Zhytomyr alerts of 24–27 h in Sep 2026 that the guard lists (left as they are)
+- [ ] Fair test of the corrected version on new weeks (from ~27 Oct for 2 weeks, ~10 Nov for 4)
+- [ ] Merge the work branch into main when the user says so; then one manual live run (hourly runs are paused)
 
 ## Next (planned, need approval; see `docs/next_steps.md`)
 1. [ ] **Task 5: keep the repo small** (D54): live data on a `live-data` branch + Netlify build hook; models as GitHub Releases; archive cleanup (~1.5–2 h)
 2. [ ] **Task 3: faster hourly runs** (D53): rolling API refresh, validated offline first (~2 h; after task 5)
-3. [ ] **Task 4: neighbouring-district inputs** (D55): ~5 h of work + 2–4 weeks of new data for a fair test
+3. [x] **Task 4: neighbouring-district inputs** (D55): done 2026-10-13, kept (wins on validation); fair test on new weeks pending
 
 ## Open from the site QA (2026-10-12, not started; numbers as in the QA report)
 - [ ] 2b. Stitch the hourly 1 h / 3 h forecast into the outlook blocks that overlap the next 3 hours (pipeline, decision needed;

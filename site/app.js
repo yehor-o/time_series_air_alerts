@@ -120,8 +120,8 @@ function localTxt(n, long = false) {  // D58: hromada/city alerts inside the uni
   const list = L.slice(0, 3).map(one).join("; ") + (L.length > 3 ? T(` and ${L.length - 3} more`, ` і ще ${L.length - 3}`) : "");
   const head = T(`Local alert: ${list}`, `Місцева тривога: ${list}`);
   if (!long) return head;
-  return `${head}. ${T("It covers only that community, not the whole area, so it is not counted as an alert here; the model uses it as a signal.",
-    "Вона стосується лише цієї громади, а не всієї території, тому тут не вважається тривогою; модель враховує її як сигнал.")}`;
+  return `${head}. ${T("A local alert covers only its own community, not the whole area, so it is not counted as an alert here.",
+    "Місцева тривога стосується лише своєї громади, а не всієї території, тому тут не вважається тривогою.")}`;
 }
 function onShort(i) {  // short forms for the Major-cities card
   if (i.continuous) return i.week ? T("alert for 7+ days", "тривога понад 7 днів") : T(`alert since ${fDay.format(i.since)}`, `тривога з ${fDay.format(i.since)}`);

@@ -1,6 +1,27 @@
 # Project State
 
-_Last updated: 2026-10-12, ~23:40 Kyiv (session 3: site QA and website fixes)._ The deadline version (2026-10-12 23:59 Kyiv) is **done and live**.
+_Last updated: 2026-10-13, Kyiv afternoon (session 4: hourly runs paused; D58/D59 data fixes, D55 neighbours, retrained). All of
+session 4's code is on the work branch `claude/great-brown-p08vo2`, **not in `main`** (the user will say when to merge)._ The deadline version (2026-10-12 23:59 Kyiv) is **done and live**.
+
+## Session 4 (2026-10-13), on the work branch only
+- **D58 (Accepted): local alerts are not district alerts.** Hromada/city alerts used to count for their whole district; Lyptsi
+  hromada (one alert 2024-05-12 → 2026-01-06, again since 2026-03-10) made Kharkivskyi district and Kharkiv oblast look
+  permanently under alert ("continuous alert 7+ days", ~0% forecast). Now: district table = district/oblast-wide alerts only;
+  `data/processed/alerts_local.parquet` keeps the local ones (site notes). Time under alert 1 Aug–11 Oct: Kharkivskyi 100% → 68%,
+  Nikopolskyi 75% → 32%, Oleksandriiskyi 37% → 23%; 28 of 119 districts change by > 1 point.
+- **D59 (Proposed): data errors found by the new guards.** Official-feed outage 2026-08-29 04:55 → 09-02 13:48 (105 h) masked and
+  patched from volunteer data (it made 10 oblasts look under alert for ~4.8 days, inside the validation weeks); stuck alerts in
+  Mukachivskyi/Berehivskyi (Nov 2025, 122 h) fixed via the reviewed list `data/fixes/stuck_alerts.csv`. Guards in
+  `reports/data_quality.md` (sections 2c, 4b).
+- **D55 (Accepted, done): neighbour inputs kept.** `data/neighbours.json` (from full-detail boundaries, `scripts/build_neighbours.py`).
+  Validation weeks (`reports/local_neighbours_ablation.md`), skill vs same-hour rule, base → + neighbours: district 1 h 0.133 →
+  0.140, 3 h 0.334 → 0.339; oblast 1 h 0.176 → 0.185, 3 h 0.372 → 0.378. Local-alert inputs did not win → not used.
+- **Models retrained** (data to 2026-10-13 09:00 UTC; Vadimkin `1e5d1b46`, JustJimer `f7b33ebc`, `data/versions_live.json`) with the
+  neighbour inputs; `models/meta.json` records the inputs. Local run of the hourly steps: Kharkivskyi 3 h = 73% (was 0.1%).
+- Site: local-alert notes (EN transliterated, `src/alerts/translit.py`), corrected continuous-alert text, the test pages labelled as
+  the deadline version. Generated `site/data/` is **not** committed (the hourly run writes it on `main`).
+- **No fair test yet** for the corrected version: the old test weeks are used up; needs 2–4 new weeks (from ~27 Oct / ~10 Nov).
+- Tests: 21 (new: `tests/test_alert_tables.py`; local/neighbour leakage tests, checked to fail on a planted leak).
 
 ## Live site
 **https://air-alert-forecast-ua.netlify.app**: Netlify publishes `site/` from `main`.
@@ -40,7 +61,7 @@ _Last updated: 2026-10-12, ~23:40 Kyiv (session 3: site QA and website fixes)._ 
 ## Method in short (details: `docs/how_it_works.md`, `decisions.md`)
 - Data: official dataset to 2026-09-06 (non-air-raid rows removed via @air_alert_ua labels) + alerts.in.ua archive
   (JustJimer; from 2026-09-06 with yellow/red) + live API. 119 raions, 24 oblasts (Luhansk, Crimea excluded).
-- Hourly tables per raion / oblast since 2022-03; every input uses only data before the forecast time (13 tests).
+- Hourly tables per raion / oblast since 2022-03; every input uses only data before the forecast time (21 tests).
 - Models: LightGBM (tuned, D47) for 1 h / 3 h; LightGBM quantile models for duration and 24 h ranges (D41, D49);
   week view = blend of timing model and pattern rule (D45); red vs yellow = the raion's red share over 7 days (D35).
   Raion: last 12 months; oblast: full history with recency weights (D40). Telegram not used (D44).
@@ -73,14 +94,14 @@ bash scripts/restore_data.sh
 python scripts/download_data.py --pin            # or without --pin for the newest data
 PYTHONPATH=. python scripts/build_alert_table.py
 PYTHONPATH=. python scripts/build_panel.py --start 2022-03-01
-PYTHONPATH=. python -m pytest -q tests/          # 13 tests
+PYTHONPATH=. python -m pytest -q tests/          # 21 tests
 ```
 Full command list: `README.md`. Run heavy model jobs one at a time.
 
 ## Next (planned, not started): `docs/next_steps.md`
 1. Task 5: keep the repo small (live data on a `live-data` branch + Netlify build hook; models as GitHub Releases), D54.
 2. Task 3: faster hourly runs (rolling API refresh, ~5 min per run), D53; after task 5.
-3. Task 4: neighbouring-district inputs (~5 h of work + 2–4 weeks for a fair test), D55.
+3. ~~Task 4: neighbouring-district inputs (D55)~~ done 2026-10-13 (with D58/D59); fair test on new weeks still to do.
 
 Not started, from the site QA (`tasks.md`): pipeline versions of the panel fix (stitch the hourly forecast into the near
 blocks) and of the red share (shrinkage toward the national share); staleness banner; "next 1 h" window partly over when

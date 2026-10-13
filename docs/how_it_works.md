@@ -23,8 +23,8 @@ All alerts (official data until 7 Sep 2026, then the alerts.in.ua archive) are t
 The model learns the link between inputs and answers from millions of past rows.
 
 **What counts as an alert in a district (D58).** Only an alert declared for the whole district, or for its whole oblast. An alert
-for one community (hromada) or city counts only for that community: it is kept in a separate "local alerts" table, used as an input
-and shown as a note on the site, but it never makes the whole district "under alert". Why: a few front-line communities stay under
+for one community (hromada) or city counts only for that community: it is kept in a separate "local alerts" table and shown as a note
+on the site, but it never makes the whole district "under alert". Why: a few front-line communities stay under
 one alert for months (Lyptsi hromada near Kharkiv: May 2024 – Jan 2026, then again since Mar 2026). Until 13 Oct 2026 such alerts
 counted for the whole district, so Kharkivskyi district (and Kharkiv oblast) looked permanently under alert in the training data.
 
@@ -47,7 +47,7 @@ The data-quality report (`reports/data_quality.md`) lists every very long alert,
 | Typical length | median duration of this district's last 10 alerts | used for duration ranges |
 | Its oblast | share of the oblast's districts under alert now; new alerts in the oblast in the last 1, 3, 24 h | "Is the oblast under attack?" |
 | Neighbours (D55) | share of the districts that share a border under alert now (also only those in other oblasts); new alerts next door in the last 1, 3, 24 h; the busiest neighbour | "Is it coming from next door?" Drones and missiles move along routes, often across oblast borders |
-| Local alerts (D58) | how many communities inside the district are under alert now, and how many of those alerts started in the last 24 h; new local alerts in the last 1, 3, 24 h | "Is something happening in part of the district?" A months-long local alert shows up as "running, not new" |
+| Local alerts (D58, tested, **not used**) | how many communities inside the district are under alert now, and how many of those alerts started in the last 24 h; new local alerts in the last 1, 3, 24 h | Did not improve the forecasts on the validation weeks (`reports/local_neighbours_ablation.md`), so the models do not use them |
 | Whole country | share of all districts under alert now; new alerts nationwide in the last 1, 3, 24 h | "Is a big attack going on?" |
 | Calendar | hour of day, weekday (Kyiv time); which oblast | regional and daily patterns |
 | Timing model only | how far ahead the block is; its clock block and weekday; share of the last 14 days (and last 4 same weekdays) with a new alert in that block, for the district, its oblast and the country | "Which hours of the coming days are usually dangerous here?" |

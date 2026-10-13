@@ -1,6 +1,6 @@
 # Data quality report
 
-Built 2026-10-13 09:51 UTC from Vadimkin `bf0c323c`, JustJimer `7abc556b`, @air_alert_ua posts #1–#338380 (338,360 posts), @war_monitor 46,492 posts.
+Built 2026-10-13 10:46 UTC from Vadimkin `bf0c323c`, JustJimer `7abc556b`, @air_alert_ua posts #1–#338380 (338,360 posts), @war_monitor 46,492 posts.
 
 ## 1. Official rows by message type (D25)
 
@@ -33,16 +33,16 @@ no message found        17
 ## 2. Raion alert table
 
 - Raions: 119 in 24 oblasts (incl. Kyiv City; Luhansk and Crimea excluded).
-- Raw raion events (after disaggregation): 860,432; events whose raion is unknown (dropped): 0.
-- Merged raion alerts: 473,049, from 2022-02-25 to 2026-10-11 09:53 UTC.
-- Merged oblast alerts: 93,847.
+- Raw raion events (after disaggregation): 861,592; events whose raion is unknown (dropped): 0.
+- Merged raion alerts: 474,209, from 2022-02-25 to 2026-10-13 10:31 UTC.
+- Merged oblast alerts: 94,160.
 
 Sources of merged raion alerts:
 
 ```
 sources
 official            451444
-archive              16271
+archive              17431
 volunteer             5119
 archive+official       215
 ```
@@ -56,12 +56,12 @@ year
 2023   90836        39.0
 2024  117218        41.7
 2025   96895        56.0
-2026   89398        48.5
+2026   90558        48.4
 ```
 
 ## 2b. Local (hromada/city) alerts, kept apart from raion alerts (D58)
 
-- Merged local alerts: 9,628 in 136 hromadas/cities; they are model inputs and site notes, never the raion's own alert.
+- Merged local alerts: 9,689 in 136 hromadas/cities; they are model inputs and site notes, never the raion's own alert.
 
 ## 2c. Guards: very long alerts and units that are almost always under alert (D58)
 
@@ -95,9 +95,9 @@ Local alerts longer than 3 days: 6
 ```
                   oblast               raion                                   hromada                            start                       end  days
       Харківська область   Харківський район            Липецька територіальна громада        2024-05-12 08:37:29+00:00 2026-01-06 09:53:57+00:00 604.1
-      Харківська область   Харківський район            Липецька територіальна громада        2026-03-10 14:01:38+00:00 2026-10-11 09:54:00+00:00 214.8
-Дніпропетровська область Нікопольський район Червоногригорівська територіальна громада        2026-09-17 10:06:55+00:00 2026-10-11 09:54:00+00:00  24.0
-Дніпропетровська область Нікопольський район          Покровська територіальна громада        2026-09-17 10:06:09+00:00 2026-10-11 09:54:00+00:00  24.0
+      Харківська область   Харківський район            Липецька територіальна громада        2026-03-10 14:01:38+00:00 2026-10-13 10:32:00+00:00 216.9
+Дніпропетровська область Нікопольський район Червоногригорівська територіальна громада        2026-09-17 10:06:55+00:00 2026-10-13 10:32:00+00:00  26.0
+Дніпропетровська область Нікопольський район          Покровська територіальна громада        2026-09-17 10:06:09+00:00 2026-10-13 10:32:00+00:00  26.0
 Дніпропетровська область Нікопольський район        Нікопольська територіальна громада 2026-10-02 15:33:26.384000+00:00 2026-10-07 09:02:34+00:00   4.7
 Дніпропетровська область Нікопольський район        Нікопольська територіальна громада 2026-09-25 05:03:55.317000+00:00 2026-09-28 05:25:25+00:00   3.0
 ```
@@ -118,23 +118,23 @@ Applied corrections from `data/fixes/stuck_alerts.csv`: 2
 Закарпатська область Берегівський район 2025-11-19 08:29:40+00:00 2025-11-19 09:08:37+00:00
 ```
 
-Raion-weeks under alert more than 90% of the time: 290 (expected only for front-line raions of Donetsk/Kharkiv/Sumy/Zaporizhzhia/Kherson oblasts; a raion outside them here means a data problem)
+Raion-weeks under alert more than 90% of the time: 304 (expected only for front-line raions of Donetsk/Kharkiv/Sumy/Zaporizhzhia/Kherson oblasts; a raion outside them here means a data problem)
 ```
 oblast                    raion                 
-Донецька область          Бахмутський район         29
-                          Волноваський район        29
-                          Донецький район           29
-                          Горлівський район         29
-                          Кальміуський район        29
-                          Краматорський район       29
-                          Покровський район         29
-                          Маріупольський район      29
-Дніпропетровська область  Синельниківський район    15
-Запорізька область        Бердянський район          7
-                          Василівський район         7
-                          Запорізький район          7
-                          Мелітопольський район      7
-                          Пологівський район         7
+Донецька область          Бахмутський район         30
+                          Волноваський район        30
+                          Донецький район           30
+                          Горлівський район         30
+                          Кальміуський район        30
+                          Краматорський район       30
+                          Покровський район         30
+                          Маріупольський район      30
+Дніпропетровська область  Синельниківський район    16
+Запорізька область        Бердянський район          8
+                          Василівський район         8
+                          Запорізький район          8
+                          Мелітопольський район      8
+                          Пологівський район         8
 Сумська область           Сумський район             1
 Харківська область        Ізюмський район            1
                           Богодухівський район       1
@@ -143,20 +143,20 @@ oblast                    raion
                           Лозівський район           1
 ```
 
-Oblast-weeks under alert more than 90% of the time: 87 (expected only for front-line raions of Donetsk/Kharkiv/Sumy/Zaporizhzhia/Kherson oblasts; a raion outside them here means a data problem)
+Oblast-weeks under alert more than 90% of the time: 91 (expected only for front-line raions of Donetsk/Kharkiv/Sumy/Zaporizhzhia/Kherson oblasts; a raion outside them here means a data problem)
 ```
 oblast
-Донецька область            29
-Дніпропетровська область    27
+Донецька область            30
+Дніпропетровська область    28
 Харківська область          16
-Запорізька область           7
+Запорізька область           8
 Сумська область              7
-Чернігівська область         1
+Чернігівська область         2
 ```
 
 ## 3. Yellow/red (reform period, archive)
 
-- Raion alerts with a level: 16,463; share red: 0.37.
+- Raion alerts with a level: 17,623; share red: 0.36.
 
 ## 4. Holes in the archive and volunteer patches (D26)
 

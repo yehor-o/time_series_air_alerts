@@ -58,7 +58,7 @@ end between two runs. `history`: one month per region, complete but slow.
 
 ---
 
-## Task 4: neighbouring-district inputs (D55, Proposed) — about 5 h of work + a 2–4 week wait for a fair test
+## Task 4: neighbouring-district inputs (D55) — DONE 2026-10-13 (kept; see decisions.md D58 result). Fair test on new weeks pending
 
 **Idea.** The model sees the district, its oblast and the whole country, but not the districts next door (especially
 across oblast borders). Drones and missiles move along routes, so "an alert just started next door" should help most
