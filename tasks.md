@@ -24,6 +24,9 @@ Details in `Project-State.md`; plans for the next steps in `docs/next_steps.md`.
 - [ ] **Hourly updates paused** (Netlify credits): serve `site/data` without a Netlify deploy per hour, then turn the
       schedule back on (needs the user's decision)
 
+- [ ] **Bug D58: local alerts promoted to whole districts** (Kharkivskyi, Nikopolskyi; "continuous alert 7+ days").
+      Fix proposed in D58, waiting for the user's approval; then rebuild, retrain, validate (not in main yet)
+
 ## Next (planned, need approval; see `docs/next_steps.md`)
 1. [ ] **Task 5: keep the repo small** (D54): live data on a `live-data` branch + Netlify build hook; models as GitHub Releases; archive cleanup (~1.5–2 h)
 2. [ ] **Task 3: faster hourly runs** (D53): rolling API refresh, validated offline first (~2 h; after task 5)

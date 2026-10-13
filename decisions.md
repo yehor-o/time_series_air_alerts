@@ -462,6 +462,25 @@ hour is already in `site/data/meta.json` on `main` skips the pipeline. Costs onl
 Alternative not done: an outside hourly trigger (e.g. cron-job.org calling `workflow_dispatch`) needs a new site, an account
 and a GitHub token, so it is left to the user.
 
+## D58. Local (hromada/city) alerts are not district alerts — Proposed (2026-10-13)
+**Bug.** `raion_events` turns every hromada/city air-raid alert into an alert for its whole raion (and so its oblast).
+A few front-line hromadas are under one alert for months: Lyptsi hromada (Kharkivskyi raion) from 2024-05-12 for ~14,500 h
+(official data) and again since 2026-03-10 (API); Pokrovska and Chervonohryhorivska hromadas (Nikopolskyi) since
+2026-09-17; Nikopol city often for 2–5 days. So Kharkivskyi raion and Kharkiv oblast look permanently under alert for
+~20 months of training data, and the live site shows "continuous alert for 7+ days" with a ~0% forecast.
+**Fix (keeps all information):**
+1. Two tables: *district-wide* alerts (declared for the raion, the oblast or Kyiv) are the forecast target and the
+   "under alert" state; *local* alerts (hromada/city) are kept separately with the hromada name.
+2. Local alerts become model inputs (local alert running now, local alerts started in the last 1/3/24 h, local hours in
+   the last 24 h), each with a no-look-into-the-future test.
+3. Site: the district shows its own state; a running local alert is a note ("local alert in Lyptsi hromada since 10 Mar").
+4. Guards in the build: the data-quality report lists every alert running > 3 days and every unit under alert for > 90 %
+   of a week; a unit test checks that no hromada/city row ever becomes a district alert.
+5. Rebuild tables, retrain, compare old vs new on the validation weeks (per district, Kharkiv/Nikopol in detail). The old
+   test weeks are used up; a fair new test needs fresh weeks (same as D55).
+Alternatives: count local alerts only for their first 12 h (simpler, but still mixes two meanings); drop local alerts
+(loses ~1,500 h of real local alerts since 6 Sep); exclude a hand-picked list of hromadas (comes back with the next one).
+
 ---
 # Planned after the deadline (2026-10-12) — all Proposed; plans in docs/next_steps.md
 
