@@ -478,6 +478,12 @@ A few front-line hromadas are under one alert for months: Lyptsi hromada (Kharki
    of a week; a unit test checks that no hromada/city row ever becomes a district alert.
 5. Rebuild tables, retrain, compare old vs new on the validation weeks (per district, Kharkiv/Nikopol in detail). The old
    test weeks are used up; a fair new test needs fresh weeks (same as D55).
+**Result (2026-10-13, `reports/local_neighbours_ablation.md`, validation weeks Aug 16 – Sep 12, test untouched).** Skill vs
+the same-hour rule, base -> + neighbours: districts 1 h 0.133 -> 0.140, 3 h 0.334 -> 0.339; oblasts 1 h 0.176 -> 0.185,
+3 h 0.372 -> 0.378; 24 h count and hours equal or better. Neighbours **kept** at both levels. Local-alert inputs (D58 step 2)
+did **not** win (districts: +0.003 at 1 h, -0.001 at 3 h; oblasts: slightly worse; adding them on top of neighbours lowered
+3 h skill), so they are **not** model inputs; the local table stays (site notes, the guards) and can be re-tested later.
+Models retrained on the corrected data with neighbour inputs; the week-view timing model keeps its validated inputs (D45).
 Alternatives: count local alerts only for their first 12 h (simpler, but still mixes two meanings); drop local alerts
 (loses ~1,500 h of real local alerts since 6 Sep); exclude a hand-picked list of hromadas (comes back with the next one).
 
@@ -506,5 +512,5 @@ Every hourly run: active alerts (1 request) + history for 6 of the 24 regions, r
 ## D54. Keep the repository small — Proposed
 Live `site/data/` on a single-commit `live-data` branch (Netlify copies it at build time, triggered by a build hook in the GitHub secret `NETLIFY_BUILD_HOOK`), so `main` only receives code and the D52 exception ends; models as GitHub Release files instead of git; forecast-check archive keeps 60 days. Today's growth would be ~70 MB/month (~45 MB hourly data commits + 25 MB models).
 
-## D55. Neighbouring-district inputs — Accepted (user, 2026-10-13, together with D58)
+## D55. Neighbouring-district inputs — Accepted (user, 2026-10-13, together with D58); done, kept (result under D58)
 New inputs from the districts that share a border (under alert now, new alerts next door in the last 1/3/24 h, busiest neighbour), with leakage tests and the same validation weeks as before. The old test weeks are used up, so a fair test needs 2–4 weeks of new data (from ~26 Oct / ~9 Nov). About 5 h of work.

@@ -80,3 +80,34 @@ unit
 Дніпропетровська область  0.1039   0.1043        0.1068  0.1076
 Харківська область        0.1401   0.1398        0.1400  0.1407
 ```
+
+New alert within 3h:
+
+```
+               Brier  log-loss  ROC-AUC  PR-AUC  skill vs same-hour
+model                                                              
+base          0.1503    0.4541   0.8535  0.7591              0.3720
++ local       0.1503    0.4542   0.8531  0.7591              0.3718
++ neighbours  0.1488    0.4498   0.8550  0.7610              0.3777
++ both        0.1490    0.4502   0.8547  0.7588              0.3771
+```
+
+Brier score for the most affected units, 3h (lower is better):
+
+```
+arm                         base  + local  + neighbours  + both
+unit                                                           
+Дніпропетровська область  0.1531   0.1523        0.1539  0.1551
+Харківська область        0.1954   0.1922        0.1937  0.1941
+```
+
+Next 24h, number of alerts and hours under alert (average error):
+
+```
+              count MAE  hours MAE
+model                             
+base              1.799      2.381
++ local           1.796      2.379
++ neighbours      1.764      2.380
++ both            1.776      2.387
+```

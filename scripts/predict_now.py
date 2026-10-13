@@ -41,15 +41,17 @@ from build_panel import red_features
 from compare_telegram import FIRST, training
 from src.alerts.timing import TIMING_EXTRA, blend_timing, issue_times, timing_rows
 from src.alerts.translit import hromada_en, hromada_uk
-from validate_models import BASE_FEATS, LOCAL_FEATS, NB_FEATS, NB_FEATS_RAION, PARENT_FEATS, lgb_cls, lgb_reg
+from validate_models import BASE_FEATS, NB_FEATS, NB_FEATS_RAION, PARENT_FEATS, lgb_cls, lgb_reg
 
 P, REP = Path("data/processed"), Path("reports")
 TUNED = json.loads((REP / "tuning.json").read_text())
 VAL_WEEK = (pd.Timestamp("2026-09-06", tz="UTC"), pd.Timestamp("2026-09-13", tz="UTC"))  # last validation week
 MOD = Path("models")
 # Extra input groups kept after the validation comparison (reports/local_neighbours_ablation.md, D58/D55): a group is
-# used only if it won there. The saved models record their inputs in models/meta.json ("features").
-EXTRA = {"raion": LOCAL_FEATS + NB_FEATS_RAION, "oblast": LOCAL_FEATS + NB_FEATS}
+# used only if it won there. Neighbours won at every target and level; local alerts (LOCAL_FEATS) did not (mixed for
+# districts, worse for oblasts), so they stay out of the models and are shown on the site only. The saved models
+# record their inputs in models/meta.json ("features").
+EXTRA = {"raion": NB_FEATS_RAION, "oblast": NB_FEATS}
 
 
 def model_feats(level, meta=None):
