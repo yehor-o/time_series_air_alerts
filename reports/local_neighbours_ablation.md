@@ -58,3 +58,25 @@ base              1.475      2.199
 + neighbours      1.463      2.191
 + both            1.464      2.185
 ```
+
+## Oblast
+
+New alert within 1h:
+
+```
+               Brier  log-loss  ROC-AUC  PR-AUC  skill vs same-hour
+model                                                              
+base          0.1066    0.3381   0.8339  0.5038              0.1757
++ local       0.1067    0.3385   0.8333  0.5021              0.1748
++ neighbours  0.1053    0.3325   0.8412  0.5112              0.1849
++ both        0.1054    0.3328   0.8409  0.5121              0.1845
+```
+
+Brier score for the most affected units, 1h (lower is better):
+
+```
+arm                         base  + local  + neighbours  + both
+unit                                                           
+Дніпропетровська область  0.1039   0.1043        0.1068  0.1076
+Харківська область        0.1401   0.1398        0.1400  0.1407
+```
