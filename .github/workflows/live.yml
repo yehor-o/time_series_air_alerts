@@ -1,47 +1,70 @@
 # Hourly live forecast (D52): fresh alerts from the alerts.in.ua API -> forecast with the saved models -> site data.
 # Only site/data/ is committed, straight to main (approved by the user); Netlify then redeploys the site.
 # A failed run commits nothing, so the site keeps the previous forecast.
+#
+# Reliability (D57): GitHub runs schedules "best effort" and skipped most hourly slots, so runs are started three ways:
+#   1. three cron slots per hour (:07, :27, :47); a run whose hour is already on main skips the pipeline in seconds;
+#   2. a chain: the `next` job of every run waits until :05 of the next hour and dispatches a new run
+#      (workflow_dispatch from GITHUB_TOKEN is allowed to start workflows); only one waiting `next` job is kept;
+#   3. an outside hourly trigger may call workflow_dispatch too (same skip logic).
 name: live-forecast
 on:
   schedule:
-    - cron: "7 * * * *"     # every hour at :07 UTC
+    - cron: "7 * * * *"
+    - cron: "27 * * * *"
+    - cron: "47 * * * *"
   workflow_dispatch: {}
-concurrency:
-  group: live-forecast
-  cancel-in-progress: false
 permissions:
   contents: write
+  actions: write
 jobs:
   forecast:
     runs-on: ubuntu-latest
     timeout-minutes: 50
+    concurrency:
+      group: live-forecast
+      cancel-in-progress: false
     env:
       PYTHONPATH: .:scripts
     steps:
       - uses: actions/checkout@v4
+      - name: Skip if this hour's forecast is already on main
+        id: due
+        run: |
+          have=$(python3 -c "import json; print(json.load(open('site/data/meta.json'))['forecast_time_utc'][:13])")
+          hour=$(date -u +%Y-%m-%dT%H)
+          echo "forecast on main: $have, current hour: $hour"
+          if [ "$have" = "$hour" ]; then echo "run=false" >> "$GITHUB_OUTPUT"; echo "already done, skipping"; else echo "run=true" >> "$GITHUB_OUTPUT"; fi
       - uses: actions/setup-python@v5
+        if: steps.due.outputs.run == 'true'
         with:
           python-version: "3.13"
           cache: pip
-      - run: pip install -r requirements.txt
+      - if: steps.due.outputs.run == 'true'
+        run: pip install -r requirements.txt
       - name: Restore committed snapshots and download the latest alert data
+        if: steps.due.outputs.run == 'true'
         run: |
           bash scripts/restore_data.sh
           python scripts/download_data.py
       - name: Fetch the last month from the alerts.in.ua API (2 requests/min, ~13 min)
+        if: steps.due.outputs.run == 'true'
         env:
           ALERTS_IN_UA_TOKEN: ${{ secrets.ALERTS_IN_UA_TOKEN }}
         run: python scripts/fetch_live.py
       - name: Build alert tables and recent hourly inputs
+        if: steps.due.outputs.run == 'true'
         run: |
           python scripts/build_alert_table.py
           python scripts/build_panel.py --start "$(date -u -d '50 days ago' +%F)"
       - name: Forecast with the saved models, export, check old forecasts
+        if: steps.due.outputs.run == 'true'
         run: |
           python scripts/predict_now.py --predict
           python scripts/export_site.py
           python scripts/forecast_check.py
       - name: Commit site/data to main
+        if: steps.due.outputs.run == 'true'
         run: |
           git config user.name "live-forecast[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
@@ -55,3 +78,24 @@ jobs:
             sleep 5
           done
           [ "$ok" = 1 ] || { echo "::error::could not push site/data to main"; exit 1; }
+
+  next:
+    # Keeps the hourly chain alive, also after a failed forecast. A newer waiting job cancels an older one,
+    # so there is never more than one chain.
+    needs: forecast
+    if: always() && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 70
+    concurrency:
+      group: live-forecast-next
+      cancel-in-progress: true
+    steps:
+      - name: Wait until :05 of the next hour, then start the next run
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          now=$(date -u +%s)
+          target=$(( (now / 3600 + 1) * 3600 + 300 ))
+          echo "waiting $(( (target - now) / 60 )) min, until $(date -u -d @$target +%H:%MZ)"
+          sleep $(( target - now ))
+          gh workflow run live.yml --ref main -R "${{ github.repository }}"

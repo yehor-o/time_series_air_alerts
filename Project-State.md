@@ -20,7 +20,8 @@ _Last updated: 2026-10-12, ~23:40 Kyiv (session 3: site QA and website fixes)._ 
   - All of it is computed in the browser from `history.json` / `p3_log.json`; the pipeline and the forecasts are unchanged.
 
 ## Live system (D51, D52)
-- **Hourly** (`.github/workflows/live.yml`, :07 UTC, ~15 min): alerts.in.ua API (`scripts/fetch_live.py`, token in the
+- **Hourly** (`.github/workflows/live.yml`, ~15 min; started by cron at :07/:27/:47 UTC plus a self-dispatch chain at :05,
+  D57, because GitHub skipped most cron slots on 12–13 Oct; a run whose hour is already on `main` skips itself): alerts.in.ua API (`scripts/fetch_live.py`, token in the
   GitHub secret `ALERTS_IN_UA_TOKEN`) → `build_alert_table.py` → `build_panel.py` (last 50 days) →
   `predict_now.py --predict` (saved models, latest hour) → `export_site.py` → `forecast_check.py` → commits **only
   `site/data/`** to `main` (approved exception) → Netlify redeploys. A failed run commits nothing and shows red.
