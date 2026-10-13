@@ -22,6 +22,17 @@ All alerts (official data until 7 Sep 2026, then the alerts.in.ua archive) are t
 
 The model learns the link between inputs and answers from millions of past rows.
 
+**What counts as an alert in a district (D58).** Only an alert declared for the whole district, or for its whole oblast. An alert
+for one community (hromada) or city counts only for that community: it is kept in a separate "local alerts" table and shown as a note
+on the site, but it never makes the whole district "under alert". Why: a few front-line communities stay under
+one alert for months (Lyptsi hromada near Kharkiv: May 2024 – Jan 2026, then again since Mar 2026). Until 13 Oct 2026 such alerts
+counted for the whole district, so Kharkivskyi district (and Kharkiv oblast) looked permanently under alert in the training data.
+
+**Data errors we correct (D59).** The official feed was silent from 29 Aug to 2 Sep 2026 (105 h) while volunteers logged ~7
+alerts per hour: those hours are marked "unknown" and never used for training or scoring. A lost "alert over" message can leave
+one alert running for days (Zakarpattia, Nov 2025): such cases are corrected from a reviewed list (`data/fixes/stuck_alerts.csv`).
+The data-quality report (`reports/data_quality.md`) lists every very long alert, so new problems show up.
+
 **The no-leakage rule.** Inputs only use information from **before** the forecast moment.
 - An alert still running at that moment is known only as "started, still active"; its end is not used.
 - Automated tests (`tests/test_leakage.py`) check this. If you delete all data after time t, every input at t must stay exactly the same.
@@ -34,7 +45,9 @@ The model learns the link between inputs and answers from millions of past rows.
 | Recent activity | new alerts in the last 1, 3, 6, 24 h and 7 days; hours under alert in the last 3 h, 24 h, 7 days | "How busy has it been?" |
 | Habits | share of the last 7 and 14 days with a new alert at this clock hour; share of the last 14 nights / days with any alert | "Is this a typical attack hour here?" (captures the daytime-drone shift) |
 | Typical length | median duration of this district's last 10 alerts | used for duration ranges |
-| Its oblast | share of the oblast's districts under alert now; new alerts in the oblast in the last 1, 3, 24 h | "Are neighbours under alert?" |
+| Its oblast | share of the oblast's districts under alert now; new alerts in the oblast in the last 1, 3, 24 h | "Is the oblast under attack?" |
+| Neighbours (D55) | share of the districts that share a border under alert now (also only those in other oblasts); new alerts next door in the last 1, 3, 24 h; the busiest neighbour | "Is it coming from next door?" Drones and missiles move along routes, often across oblast borders |
+| Local alerts (D58, tested, **not used**) | how many communities inside the district are under alert now, and how many of those alerts started in the last 24 h; new local alerts in the last 1, 3, 24 h | Did not improve the forecasts on the validation weeks (`reports/local_neighbours_ablation.md`), so the models do not use them |
 | Whole country | share of all districts under alert now; new alerts nationwide in the last 1, 3, 24 h | "Is a big attack going on?" |
 | Calendar | hour of day, weekday (Kyiv time); which oblast | regional and daily patterns |
 | Timing model only | how far ahead the block is; its clock block and weekday; share of the last 14 days (and last 4 same weekdays) with a new alert in that block, for the district, its oblast and the country | "Which hours of the coming days are usually dangerous here?" |
@@ -143,7 +156,9 @@ what really happened, so a drop in accuracy would show up there first.
   hourly numbers; blocks that overlap the next 3 hours are dashed, and there the hourly forecast is the better guide.
 - **Under alert now**: striped red on the map. The chances are then for a *new* alert after the current one ends. If one alert
   has been running for 24 hours or more, the place is shown as a **continuous alert** and no forecast is given (a new alert
-  cannot start while it runs; this can happen when a front-line or border community keeps a district's alert on).
+  cannot start while it runs; this happens in front-line districts).
+- **Local alert** (one community or city): a note in the side panel ("Local alert: Lypetska hromada since 10 Mar"); it does not
+  make the district "under alert".
 - **Red or yellow**: the share of red among the place's alerts in the last 7 days, shown together with how many alerts it is
   based on. With all of them yellow (or all red) the site shows the count, e.g. "0 of 3", instead of 0% or 100%.
 - **History strip**: a grey band means no forecast was saved for those hours (the hourly run did not happen).

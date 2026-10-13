@@ -8,6 +8,7 @@ Outputs data/processed/panel_raion.parquet   one row per (raion, hour): features
 Usage: PYTHONPATH=. python scripts/build_panel.py [--start 2024-01-01]
 """
 import argparse
+import json
 from pathlib import Path
 
 import numpy as np
@@ -40,6 +41,8 @@ def main(start):
     raion = pd.read_parquet(P / "alerts_raion.parquet")
     oblast = pd.read_parquet(P / "alerts_oblast.parquet")
     masks = pd.read_parquet(P / "masks.parquet")
+    local = pd.read_parquet(P / "alerts_local.parquet")  # hromada/city alerts: inputs only (D58)
+    nbrs = json.loads(Path("data/neighbours.json").read_text(encoding="utf-8"))  # D55
     universe = pd.read_csv(P / "raions.csv")
     last_known = raion.start.max().ceil("min")
     grid = pd.date_range(pd.Timestamp(start, tz="UTC"), last_known.floor("h"), freq="h")
@@ -47,14 +50,18 @@ def main(start):
 
     raion.attrs["unit_cols"] = ["oblast", "raion"]
     units = list(zip(universe.oblast, universe.raion))
-    pr = build_panel(raion, units, grid, last_known, parent={u: u[0] for u in units}, masks=masks)
+    nb_r = {tuple(u.split("|")): [tuple(v.split("|")) for v in vs] for u, vs in nbrs["raion"].items()}
+    pr = build_panel(raion, units, grid, last_known, parent={u: u[0] for u in units}, masks=masks,
+                     local=local, neighbours=nb_r)
     pr["oblast"] = pr.unit.str.split("|").str[0]
     pr.to_parquet(P / "panel_raion.parquet")
     print("panel_raion", pr.shape)
 
     oblast = oblast.rename(columns={"oblast": "unit"})
     oblast.attrs["unit_cols"] = ["unit"]
-    po = build_panel(oblast, sorted(universe.oblast.unique()), grid, last_known)  # oblast truth has no masks
+    lo = local.assign(unit=local.oblast, hromada=local.raion + "/" + local.hromada)
+    po = build_panel(oblast, sorted(universe.oblast.unique()), grid, last_known,  # oblast truth has no masks
+                     local=lo, neighbours=nbrs["oblast"])
     po["oblast"] = po.unit
     po.to_parquet(P / "panel_oblast.parquet")
     print("panel_oblast", po.shape)

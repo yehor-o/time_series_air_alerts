@@ -46,7 +46,7 @@ def main():
                   "models_trained_utc": now.get("models_trained_utc"),
                   "units": {"raion": {u["id"]: {"name": u["name"], "oblast": u["oblast"], "oblast_id": u["oblast_id"]} for u in units},
                             "oblast": {o: {"name": ob_name[o]} for o in oblasts}}})
-    keep = ("p1", "p3", "red", "dur", "cnt", "hrs", "next24", "active")
+    keep = ("p1", "p3", "red", "dur", "cnt", "hrs", "next24", "active", "local")
     dump("now", {lv: {u: {k: v[k] for k in keep if k in v} for u, v in now[lv].items()} for lv in ("raion", "oblast")})
     dump("week", {"block_starts_utc": now["block_starts_utc"],
                   **{lv: {u: v["week"] for u, v in now[lv].items()} for lv in ("raion", "oblast")}})
@@ -124,7 +124,9 @@ def main():
                        "with": tab["LightGBM + @war_monitor"]["skill vs same-hour"],
                        "with_kpszsu": tab["LightGBM + @kpszsu"]["skill vs same-hour"]})
     dn = M["raion"]["start_3h"]["day_night"]
-    dump("metrics", {"test_period": ["2026-09-13", "2026-10-11"], "headline": head, "calibration": calib,
+    # 13 Oct update (D58/D59/D55): the validation comparison of the corrected version (validation weeks, not the test)
+    upd = json.loads((REP / "local_neighbours_ablation.json").read_text()) if (REP / "local_neighbours_ablation.json").exists() else None
+    dump("metrics", {"update_13oct": upd, "test_period": ["2026-09-13", "2026-10-11"], "headline": head, "calibration": calib,
                      "day_night": [{"part": "Day (06-22)", "auc": dn["day (06-22 Kyiv)"]["ROC-AUC"]},
                                    {"part": "Night (22-06)", "auc": dn["night (22-06 Kyiv)"]["ROC-AUC"]}],
                      "telegram": tg, "range_coverage_validation_week": now["range_coverage_validation_week"], "full": M})

@@ -33,13 +33,18 @@ def feature_cols(panel):
     return [c for c in panel.columns if not c.startswith("y_") and c not in ("time", "unit")]
 
 
-def check(intervals, units, grid, parent, cut):
+def check(intervals, units, grid, parent, cut, local=None, neighbours=None):
     last = grid[-1] + pd.Timedelta("1h")
-    full = build_panel(intervals, units, grid, last, parent=parent)
+    full = build_panel(intervals, units, grid, last, parent=parent, local=local, neighbours=neighbours)
     known_iv = truncate(intervals, cut)
     known_iv.attrs = intervals.attrs
-    known = build_panel(known_iv, units, grid, last, parent=parent)
+    known_local = None if local is None else truncate(local, cut)
+    known = build_panel(known_iv, units, grid, last, parent=parent, local=known_local, neighbours=neighbours)
     cols = feature_cols(full)
+    if local is not None:
+        assert {"local_active_n", "local_new_active_n", "local_starts_24h"} <= set(cols)
+    if neighbours is not None:
+        assert {"nb_active_share", "nb_starts_1h", "nb_max_starts_24h"} <= set(cols)
     a = full[full.time <= cut][cols].reset_index(drop=True)
     b = known[known.time <= cut][cols].reset_index(drop=True)
     pd.testing.assert_frame_equal(a, b, check_exact=False, rtol=1e-9, atol=1e-9)
@@ -53,6 +58,50 @@ def test_no_lookahead_synthetic(seed):
     grid = pd.date_range("2026-01-01", "2026-02-09", freq="h", tz="UTC")
     cut = grid[np.random.default_rng(seed).integers(24 * 15, len(grid) - 24)]
     check(iv, units, grid, parent, cut)
+
+
+def synthetic_local(units, days=40):
+    """Hromada alerts per unit: short ones, plus one that runs for months (like Lyptsi, D58)."""
+    rows = []
+    t0 = pd.Timestamp("2026-01-01", tz="UTC")
+    for u in units:
+        for h in ("h1", "h2"):
+            t = t0
+            while t < t0 + pd.Timedelta(days=days):
+                t += pd.Timedelta(minutes=float(RNG.exponential(900)))
+                d = pd.Timedelta(minutes=float(RNG.exponential(60)) + 1)
+                rows.append(dict(unit=u, hromada=h, start=t, end=t + d))
+                t += d
+    rows.append(dict(unit=units[0], hromada="long", start=t0 + pd.Timedelta("3D"), end=t0 + pd.Timedelta("200D")))
+    return pd.DataFrame(rows)
+
+
+@pytest.mark.parametrize("seed", range(4))
+def test_local_and_neighbour_inputs_no_lookahead(seed):
+    """D58/D55: local-alert and neighbour inputs at t <= T must not change when everything after T is hidden."""
+    iv = synthetic_alerts()
+    units = sorted(iv.unit.unique())
+    parent = dict(zip(iv.unit, iv.oblast))
+    neighbours = {u: [v for v in units if v != u][:2] for u in units}
+    local = synthetic_local(units)
+    grid = pd.date_range("2026-01-01", "2026-02-09", freq="h", tz="UTC")
+    cut = grid[np.random.default_rng(100 + seed).integers(24 * 5, len(grid) - 24)]
+    check(iv, units, grid, parent, cut, local=local, neighbours=neighbours)
+
+
+def test_local_inputs_count_running_alerts():
+    """The months-long local alert is 'running' (local_active_n >= 1) but not 'new' after its first 24 h."""
+    iv = synthetic_alerts()
+    units = sorted(iv.unit.unique())
+    local = synthetic_local(units)
+    local = local[local.hromada == "long"]
+    grid = pd.date_range("2026-01-01", "2026-02-09", freq="h", tz="UTC")
+    p = build_panel(iv, units, grid, grid[-1] + pd.Timedelta("1h"), local=local)
+    u0 = p[p.unit == units[0]].set_index("time")
+    assert u0.loc["2026-01-04 01:00":, "local_active_n"].eq(1).all()
+    assert u0.loc["2026-01-05 01:00":, "local_new_active_n"].eq(0).all()
+    assert u0.loc["2026-01-04 01:00":"2026-01-04 23:00", "local_new_active_n"].eq(1).all()
+    assert p[p.unit != units[0]].local_active_n.eq(0).all()
 
 
 def test_no_lookahead_real_raions():
@@ -70,8 +119,15 @@ def test_no_lookahead_real_raions():
     units = sorted(set(zip(r.oblast, r.raion)))
     parent = {u: u[0] for u in units}
     grid = pd.date_range("2026-08-20", "2026-10-01", freq="h", tz="UTC")
+    try:
+        loc = pd.read_parquet("data/processed/alerts_local.parquet")
+        loc = loc[loc.oblast.isin(obs) & loc.raion.isin(keep)].copy()
+    except FileNotFoundError:
+        loc = None
+    nb = {u: [v for v in units if v != u and v[0] == u[0]][:2] + [v for v in units if v[0] != u[0]][:1] for u in units}
     for cut in (pd.Timestamp("2026-09-07 06:00", tz="UTC"), pd.Timestamp("2026-09-20 21:00", tz="UTC")):
         check(r, units, grid, parent, cut)
+        check(r, units, grid, parent, cut, local=loc, neighbours=nb)
 
 
 def test_targets_do_look_ahead():

@@ -1,28 +1,95 @@
 {
- "timing_prior": {
-  "raion": 0.25082009306832614,
-  "oblast": 0.2377456099398824
+ "features": {
+  "raion": [
+   "active",
+   "h_since_start",
+   "h_since_end",
+   "med_dur10",
+   "starts_1h",
+   "starts_3h",
+   "starts_6h",
+   "starts_24h",
+   "starts_168h",
+   "alert_h_3h",
+   "alert_h_24h",
+   "alert_h_168h",
+   "hod_rate7",
+   "hod_rate14",
+   "night_rate14",
+   "day_rate14",
+   "nat_active_share",
+   "nat_starts_1h",
+   "nat_starts_3h",
+   "nat_starts_24h",
+   "hour",
+   "dow",
+   "oblast_code",
+   "parent_active_share",
+   "parent_starts_1h",
+   "parent_starts_3h",
+   "parent_starts_24h",
+   "nb_active_share",
+   "nb_starts_1h",
+   "nb_starts_3h",
+   "nb_starts_24h",
+   "nb_max_starts_24h",
+   "nb_other_oblast_active_share"
+  ],
+  "oblast": [
+   "active",
+   "h_since_start",
+   "h_since_end",
+   "med_dur10",
+   "starts_1h",
+   "starts_3h",
+   "starts_6h",
+   "starts_24h",
+   "starts_168h",
+   "alert_h_3h",
+   "alert_h_24h",
+   "alert_h_168h",
+   "hod_rate7",
+   "hod_rate14",
+   "night_rate14",
+   "day_rate14",
+   "nat_active_share",
+   "nat_starts_1h",
+   "nat_starts_3h",
+   "nat_starts_24h",
+   "hour",
+   "dow",
+   "oblast_code",
+   "nb_active_share",
+   "nb_starts_1h",
+   "nb_starts_3h",
+   "nb_starts_24h",
+   "nb_max_starts_24h"
+  ]
  },
- "trained_utc": "2026-10-12T09:00:00+00:00",
- "data_until_utc": "2026-10-12T09:00:00+00:00",
+ "timing_prior": {
+  "raion": 0.2594986210019347,
+  "oblast": 0.26211873638344224
+ },
+ "trained_utc": "2026-10-13T09:00:00+00:00",
+ "data_until_utc": "2026-10-13T09:00:00+00:00",
  "coverage": {
   "raion": {
    "y_count_24h": {
-    "inside_25_75_range": 0.6603141256502602,
+    "inside_25_75_range": 0.6555122048819528,
     "rows": 19992
    },
    "y_hours_24h": {
-    "inside_25_75_range": 0.5443177270908364,
+    "inside_25_75_range": 0.5272609043617447,
     "rows": 19992
    }
   },
   "oblast": {
    "y_count_24h": {
-    "inside_25_75_range": 0.6041666666666666,
+    "inside_25_75_range": 0.6014384920634921,
     "rows": 4032
    },
    "y_hours_24h": {
-    "inside_25_75_range": 0.5178571428571429,
+    "inside_25_75_range": 0.4751984126984127,
     "rows": 4032
    }
   }
@@ -30,11 +97,11 @@
  "data_versions": {
   "vadimkin": {
    "repo": "Vadimkin/ukrainian-air-raid-sirens-dataset",
-   "commit": "d10c80fa696bab42822b9f05b423fc8a30e79d20"
+   "commit": "1e5d1b46f4e401240f0759ed48f5a326ef53f041"
   },
   "justjimer": {
    "repo": "JustJimer/ukraine-air-alert-stats",
-   "commit": "c5b3bd012c7694e63115999a7bbd0b683eaa8d24"
+   "commit": "f7b33ebc78a711a78ce45ec03318fcb05996fbb0"
   }
  }
 }
