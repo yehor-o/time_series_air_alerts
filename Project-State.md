@@ -1,7 +1,9 @@
 # Project State
 
-_Last updated: 2026-10-13, Kyiv afternoon (session 4: hourly runs paused; D58/D59 data fixes, D55 neighbours, retrained). All of
-session 4's code is on the work branch `claude/great-brown-p08vo2`, **not in `main`** (the user will say when to merge)._ The deadline version (2026-10-12 23:59 Kyiv) is **done and live**.
+_Last updated: 2026-10-13, ~15:00 Kyiv (session 4: D58/D59 data fixes, D55 neighbours, retrained, final site version **shipped**).
+Merged as PR #17 (`[skip netlify]`); one manual live run (#7, 11:30–11:47 UTC) published the forecast of 13 Oct 14:00 Kyiv from
+the latest API data = the one Netlify update. Hourly runs stay paused (frozen forecast, user's choice). This file's last edit is
+on the work branch only, to avoid another Netlify update._ The deadline version (2026-10-12 23:59 Kyiv) is **done and live**.
 
 ## Session 4 (2026-10-13), on the work branch only
 - **D58 (Accepted): local alerts are not district alerts.** Hromada/city alerts used to count for their whole district; Lyptsi
