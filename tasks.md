@@ -18,6 +18,8 @@ Details in `Project-State.md`; plans for the next steps in `docs/next_steps.md`.
 - [x] Editorial Dark design; Major-cities card; "under alert now"; clearer Forecast check
 - [x] Site QA (session 3) and website-only fixes (D56): under-alert stripes + continuous alerts, outlook vs hourly labels,
       history-strip gaps, About page, red-tile evidence
+- [x] Live-run reliability (D57, 2026-10-13): cron skipped ~11 of 12 hourly slots; added extra cron slots, a self-dispatch
+      chain and a same-hour skip. Outside hourly trigger (cron-job.org + GitHub token) not set up: needs the user's account
 
 ## Next (planned, need approval; see `docs/next_steps.md`)
 1. [ ] **Task 5: keep the repo small** (D54): live data on a `live-data` branch + Netlify build hook; models as GitHub Releases; archive cleanup (~1.5–2 h)

@@ -455,6 +455,13 @@ The site is first built on the pinned data: forecast moment 2026-10-11 09:00 UTC
 - Alternatives (not done, need the pipeline and validation): stitch the hourly 1 h / 3 h forecast into the near blocks via
   hourly rates; shrink the red share toward the national share (would change D35). Tracked in `tasks.md`.
 
+## D57. Keeping the hourly run going — Proposed (user asked to apply it, 2026-10-13)
+GitHub started only 1 of ~12 hourly cron slots on 12–13 Oct, so the site froze at 02:00 UTC. Now: cron at :07, :27 and :47; a
+`next` job in every run waits until :05 of the next hour and dispatches a new run (only one waiting job is kept); a run whose
+hour is already in `site/data/meta.json` on `main` skips the pipeline. Costs only Actions minutes (free, public repo).
+Alternative not done: an outside hourly trigger (e.g. cron-job.org calling `workflow_dispatch`) needs a new site, an account
+and a GitHub token, so it is left to the user.
+
 ---
 # Planned after the deadline (2026-10-12) — all Proposed; plans in docs/next_steps.md
 
