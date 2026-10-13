@@ -47,3 +47,14 @@ unit
 Кіровоградська область|Олександрійський район  0.2556   0.2543        0.2527  0.2525
 Харківська область|Харківський район           0.1935   0.1929        0.1923  0.1925
 ```
+
+Next 24h, number of alerts and hours under alert (average error):
+
+```
+              count MAE  hours MAE
+model                             
+base              1.475      2.199
++ local           1.474      2.183
++ neighbours      1.463      2.191
++ both            1.464      2.185
+```
