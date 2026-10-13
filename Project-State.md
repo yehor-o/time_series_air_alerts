@@ -9,7 +9,7 @@ session 4's code is on the work branch `claude/great-brown-p08vo2`, **not in `ma
   permanently under alert ("continuous alert 7+ days", ~0% forecast). Now: district table = district/oblast-wide alerts only;
   `data/processed/alerts_local.parquet` keeps the local ones (site notes). Time under alert 1 Aug–11 Oct: Kharkivskyi 100% → 68%,
   Nikopolskyi 75% → 32%, Oleksandriiskyi 37% → 23%; 28 of 119 districts change by > 1 point.
-- **D59 (Proposed): data errors found by the new guards.** Official-feed outage 2026-08-29 04:55 → 09-02 13:48 (105 h) masked and
+- **D59 (Accepted): data errors found by the new guards.** Official-feed outage 2026-08-29 04:55 → 09-02 13:48 (105 h) masked and
   patched from volunteer data (it made 10 oblasts look under alert for ~4.8 days, inside the validation weeks); stuck alerts in
   Mukachivskyi/Berehivskyi (Nov 2025, 122 h) fixed via the reviewed list `data/fixes/stuck_alerts.csv`. Guards in
   `reports/data_quality.md` (sections 2c, 4b).

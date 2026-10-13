@@ -487,7 +487,7 @@ Models retrained on the corrected data with neighbour inputs; the week-view timi
 Alternatives: count local alerts only for their first 12 h (simpler, but still mixes two meanings); drop local alerts
 (loses ~1,500 h of real local alerts since 6 Sep); exclude a hand-picked list of hromadas (comes back with the next one).
 
-## D59. Outages and stuck alerts in the official data — Proposed (2026-10-13, found by the D58 guards)
+## D59. Outages and stuck alerts in the official data — Accepted (user, 2026-10-13)
 - **Outage.** The official feed is silent nationwide from 2026-08-29 04:55 to 2026-09-02 13:48 UTC (105 h) while the volunteer source
   logs 743 alerts (~7/h). Alerts open at its start got their end only when the feed came back, so 10 oblasts looked under alert for
   ~4.8 days. Rule: a nationwide official silence of >= 24 h with >= 2 volunteer alerts per hour is an outage (only this one in the
@@ -499,7 +499,10 @@ Alternatives: count local alerts only for their first 12 h (simpler, but still m
   09:08 and the feed worked nationwide. A general rule would also cut real long front-line alerts (Synelnykivskyi, Sumskyi), so
   corrections are a reviewed list, `data/fixes/stuck_alerts.csv` (each row with its evidence; the build fails if a row matches
   nothing), and the data-quality report lists every district alert > 24 h outside the front-line/border oblasts for review.
-  Still listed and left as they are: Kyiv-oblast districts on 12–13 Sep and 23–24 Sep 2026 (24–27 h, alerts.in.ua archive).
+  Still listed and left as they are (user, 2026-10-13: "let them be"): Kyiv-oblast and Korostenskyi districts on 12–13 Sep
+  and 23–24 Sep 2026 (24–27 h, alerts.in.ua archive).
+- Oblast rule unchanged (user, 2026-10-13): an oblast is under alert when any of its districts is (D22), even though front-line
+  oblasts (Dnipropetrovsk, Kharkiv) are then under alert > 90% of many weeks.
 - Alternatives: leave the data as it is (the validation weeks would score a fake 5-day alert); drop the outage days completely
   (loses the oblast truth that the volunteer source does have).
 

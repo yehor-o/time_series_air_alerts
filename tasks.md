@@ -27,7 +27,7 @@ Details in `Project-State.md`; plans for the next steps in `docs/next_steps.md`.
 - [x] **Bug D58: local alerts promoted to whole districts** (Kharkivskyi, Nikopolskyi; "continuous alert 7+ days"): fixed,
       validated, retrained (2026-10-13, work branch, not in main yet)
 - [x] D59: official-feed outage (29 Aug – 2 Sep) and stuck Zakarpattia alerts (Nov 2025) found by the new guards and corrected
-- [ ] Review D59 (Proposed) and the 4 Kyiv/Zhytomyr alerts of 24–27 h in Sep 2026 that the guard lists (left as they are)
+- [x] D59 accepted; the 4 Kyiv/Zhytomyr alerts of 24–27 h stay as they are; oblast rule unchanged (user, 2026-10-13)
 - [ ] Fair test of the corrected version on new weeks (from ~27 Oct for 2 weeks, ~10 Nov for 4)
 - [ ] Merge the work branch into main when the user says so; then one manual live run (hourly runs are paused)
 
