@@ -65,6 +65,13 @@ async function load() {
   $("#asof").textContent = T(`Forecast made at ${fDayTime.format(S.tF)} (Kyiv time) · data up to ${fDayTime.format(new Date(S.D.meta.data_until_utc))}`,
     `Прогноз зроблено ${fDayTime.format(S.tF)} (за Києвом) · дані до ${fDayTime.format(new Date(S.D.meta.data_until_utc))}`);
   if (+S.tW !== +S.tF) $("#asof").textContent += T(` · 3-hour blocks from ${fHour.format(S.tW)}`, ` · 3-годинні блоки від ${fHour.format(S.tW)}`);
+  // hourly updates paused (hosting costs) or late: say how old the forecast is instead of "updated every hour"
+  S.stale = Date.now() - S.tF.getTime() > 2 * 3600e3;
+  if (S.stale && !S.D.meta.sample) {
+    const st = $("#stale"); st.hidden = false;
+    st.textContent = T(`Hourly updates are paused. This forecast was made at ${fDayTime.format(S.tF)} (Kyiv time) and is not being updated, so "now" and "next hours" refer to that moment.`,
+      `Щогодинне оновлення призупинено. Цей прогноз зроблено ${fDayTime.format(S.tF)} (за Києвом), і він не оновлюється, тож «зараз» і «найближчі години» стосуються того моменту.`);
+  }
   const trained = S.D.meta.models_trained_utc ? fDayTime.format(new Date(S.D.meta.models_trained_utc)) : "–";
   document.querySelectorAll(".about-trained").forEach((e) => (e.textContent = trained));
   initTabs(); initMap(); initControls(); renderLegend("#legend", null, true); renderTopRisk(); initReplay(); renderQuality(); initCheck();
@@ -137,8 +144,8 @@ const STATIC_UK = {
   "#warn": "Лише демонстрація, не офіційна система оповіщення. Завжди дійте за офіційними сигналами повітряної тривоги.",
   "#lbl-view": "Вигляд", '[data-level="raion"]': "Райони", '[data-level="oblast"]': "Області",
   "#lbl-fc": "Прогноз", '[data-h="p1"]': "Найближча 1 год", '[data-h="p3"]': "Найближчі 3 год", '[data-h="block"]': "За блоком часу",
-  "#replay-title": "Повтор тестових тижнів",
-  "#replay-text": "Кожна година тестового періоду: колір показує, що модель прогнозувала на наступні 3 години, використовуючи лише дані, доступні на той момент. Біла обвідка позначає райони, де тривога справді почалася протягом цих 3 годин.",
+  "#replay-title": "Повтор тестових тижнів (версія на дедлайн)",
+  "#replay-text": "Кожна година тестового періоду: колір показує, що модель прогнозувала на наступні 3 години, використовуючи лише дані, доступні на той момент. Біла обвідка позначає райони, де тривога справді почалася протягом цих 3 годин. Це версія на дедлайн (до виправлення даних 13 жовтня); див. «Наскільки добре?».",
   "#rplay": "▶ Відтворити", "#rstep": "+1 год", "#panel .empty": "Натисніть на район чи область на мапі, щоб побачити прогноз.",
   '#rspeed option[value="400"]': "Повільно", '#rspeed option[value="150"]': "Звичайно", '#rspeed option[value="50"]': "Швидко",
 };
@@ -349,7 +356,7 @@ function renderPanel() {
   P.innerHTML = `${head}
     ${n.local ? `<p class="note local">${localTxt(n, true)}</p>` : ""}
     ${i.active ? `<div class="now-on big">${onTxt(i)} ${T("(Kyiv time). The chances below are for a new alert after this one ends.", "(за Києвом). Ймовірності нижче стосуються нової тривоги після завершення цієї.")}</div>` : ""}
-    <h3>${T("Right now · updated every hour", "Зараз · оновлюється щогодини")}</h3>
+    <h3>${S.stale ? T(`At the forecast time · ${fDayTime.format(S.tF)}`, `На момент прогнозу · ${fDayTime.format(S.tF)}`) : T("Right now · updated every hour", "Зараз · оновлюється щогодини")}</h3>
     <div class="hero"><div class="hero-v">${pct(n.p3)}</div>
       <div class="hero-k">${T("chance of a new alert in the next 3 hours", "ймовірність нової тривоги протягом наступних 3 годин")}</div>
       <div class="hero-bar"><span style="width:${Math.round(n.p3 * 100)}%"></span></div></div>
@@ -598,7 +605,8 @@ function renderQuality() {
       зокрема у двох місцях, де наша модель програла (позначено ${lost} нижче).</p>
     <p class="note">Ці результати стосуються версії на дедлайн (12 жовтня). 13 жовтня дані виправлено (тривога однієї громади більше не
       вважається тривогою всього району; прогалину офіційних даних 29 серпня – 2 вересня позначено як невідому) і моделі перенавчено. Тестові
-      тижні вже використано, тому виправлену версію буде чесно перевірено на нових тижнях, коли накопичиться 2–4 тижні нових даних.</p>
+      тижні вже використано, тому виправлену версію буде чесно перевірено на нових тижнях, коли накопичиться 2–4 тижні нових даних.
+      Що змінилося і як це спрацювало на валідаційних тижнях: розділ 9 нижче.</p>
     <p><b>AUC</b>: ймовірність, що випадкова година з новою тривогою отримала вищий прогноз, ніж випадкова година без неї (0,5 = вгадування,
       1 = ідеально). <b>Перевага (skill)</b>: наскільки менші помилки прогнозу (оцінка Брієра), ніж у простого правила «як часто тривога
       починалася в цю годину доби протягом останніх 14 днів» (0 = не краще, 0,3 = на 30% менші, нижче 0 = гірше). На графіках
@@ -653,6 +661,17 @@ function renderQuality() {
       з 6 по 26 вересня, перевірено на ${F.red.test.toLocaleString()} тривогах з 27 вересня (${pct(F.red.red_share)} червоних). Найкраще працює просте правило
       «частка червоних тривог у цьому районі за останні 7 днів».</p>
     <div class="grid2" id="q-red"></div>
+    <h3>9. Оновлення 13 жовтня: виправлені дані й сусідні райони</h3>
+    <p class="cap"><b>Що було не так.</b> Тривога для однієї громади чи міста зараховувалася всьому району. Липецька громада біля Харкова
+      місяцями перебуває під однією тривогою (травень 2024 – січень 2026 і знову з березня 2026), тож Харківський район і Харківська область у
+      даних виглядали так, ніби тривога там постійна, а прогноз нової тривоги був близьким до 0%. Тепер тривога громади — лише примітка, а не
+      тривога району. Також знайдено й виправлено дві помилки даних: 105-годинний збій офіційних даних (29 серпня – 2 вересня; ці години тепер
+      «невідомі» й не використовуються) і дві «застряглі» тривоги на Закарпатті (листопад 2025, 122 год замість 40 хв).</p>
+    <p class="cap"><b>Нові вхідні дані.</b> Модель тепер бачить сусідні райони (ті, що мають спільний кордон, зокрема в інших областях): чи
+      триває там тривога і скільки нових тривог почалося за 1, 3 і 24 години. На тих самих 4 валідаційних тижнях (16 серпня – 12 вересня,
+      до тестового періоду) сусіди покращили всі прогнози, тож їх додано. Тривоги громад як вхідні дані не покращили прогноз, тому модель їх
+      не використовує. Перевага; більше — краще. Це валідаційні тижні, а не тест: чесний тест виправленої версії буде на нових тижнях.</p>
+    <div class="grid2" id="q-upd"></div>
   </div>` : `<div class="docbody wide">
     <h2>How good is it?</h2>
     <p>Everything on this page was measured on the <b>test period ${M.test_period[0]} – ${M.test_period[1]}</b>: four weeks that no model and
@@ -661,7 +680,8 @@ function renderQuality() {
       the two places where our model lost (marked ${lost} below).</p>
     <p class="note">These results are for the deadline version (12 Oct). On 13 Oct the data was corrected (an alert for one community no
       longer counts as an alert for its whole district; the official-data outage of 29 Aug – 2 Sep is marked as unknown) and the models were
-      retrained. The test weeks are already used, so the corrected version will get a fair test on new weeks once 2–4 weeks of new data exist.</p>
+      retrained. The test weeks are already used, so the corrected version will get a fair test on new weeks once 2–4 weeks of new data exist.
+      What changed and how it did on the validation weeks: section 9 below.</p>
     <p><b>AUC</b>: the chance that a random hour with a new alert got a higher forecast than a random hour without one (0.5 = guessing, 1 = perfect).
       <b>Skill</b>: how much smaller the forecast errors (Brier score) are than the simple rule "how often did an alert start at this clock hour on
       each of the last 14 days" (0 = no better, 0.3 = 30% smaller, below 0 = worse). In the charts, <span class="chip-b">blue</span> is the method
@@ -712,6 +732,18 @@ function renderQuality() {
       from 6–26 Sep, tested on ${F.red.test.toLocaleString()} alerts from 27 Sep (${pct(F.red.red_share)} red). The simple rule
       "this district's red share in the last 7 days" works best.</p>
     <div class="grid2" id="q-red"></div>
+    <h3>9. The 13 October update: corrected data and neighbouring districts</h3>
+    <p class="cap"><b>What was wrong.</b> An alert for one community (hromada) or city counted as an alert for its whole district. Lypetska
+      hromada near Kharkiv stays under one alert for months (May 2024 – Jan 2026, and again since Mar 2026), so Kharkivskyi district and Kharkiv
+      oblast looked permanently under alert in the data, and their chance of a new alert was close to 0%. Now a community's alert is a note,
+      not the district's alert. Two data errors were also found and corrected: a 105-hour outage of the official data (29 Aug – 2 Sep; those
+      hours are now "unknown" and not used) and two stuck alerts in Zakarpattia (Nov 2025, 122 h instead of 40 min).</p>
+    <p class="cap"><b>New inputs.</b> The model now also sees the neighbouring districts (those sharing a border, also across oblast borders):
+      is an alert running there, and how many new alerts started there in the last 1, 3 and 24 hours. On the same 4 validation weeks
+      (16 Aug – 12 Sep, before the test period) the neighbours improved every forecast, so they were added. Community alerts as inputs did not
+      improve the forecast, so the model does not use them. Skill; higher is better. These are validation weeks, not the test: the corrected
+      version will get its fair test on new weeks.</p>
+    <div class="grid2" id="q-upd"></div>
   </div>`;
 
   const MODELS = [["baseline: same hour, last 14 days", T("Clock-hour rule", "Правило години доби")], ["baseline: persistence", T("Persistence", "Інерція")],
@@ -773,6 +805,16 @@ function renderQuality() {
   hbars($("#q-red"), T("Red vs yellow: AUC", "Червона чи жовта: AUC"), [["baseline: overall red share", T("Always the average share", "Завжди середня частка")], ["baseline: previous alert's level", T("Previous alert's level", "Рівень попередньої тривоги")],
     ["logistic, 5 level features", T("Logistic regression", "Логістична регресія")], ["raion red share last 7 days (chosen)", T("Red share, last 7 days", "Частка червоних за 7 днів")]]
     .map(([k, lab]) => ({ label: lab, v: rt[k]["ROC-AUC"], chosen: k.includes("chosen") })), { min: 0.5, max: 0.9 });
+  const U = M.update_13oct;
+  if (U) for (const lv of ["raion", "oblast"]) for (const h of [1, 3]) {
+    const tb = U[lv][`start_${h}h`], k = "skill vs same-hour";
+    hbars($("#q-upd"), T(`${LV[lv]}, ${hTxt(h)} (validation weeks)`, `${LV[lv]}, ${hTxt(h)} (валідаційні тижні)`), [
+      { label: T("Without new inputs", "Без нових даних"), v: tb["base"][k] },
+      { label: T("+ neighbours (used)", "+ сусіди (використано)"), v: tb["+ neighbours"][k], chosen: true },
+      { label: T("+ community alerts", "+ тривоги громад"), v: tb["+ local"][k] },
+      { label: T("+ both", "+ обидва"), v: tb["+ both"][k] }], { min: 0, max: 0.45 });
+  }
+  else $("#q-upd").innerHTML = "";
 }
 function drawCalibration(host, cal) {
   const W = 360, H = 300, m = 34, sx = (v) => m + v * (W - m - 8), sy = (v) => H - m - v * (H - m - 8);
@@ -812,11 +854,18 @@ function initCheck() {
       потім ніколи не змінюється. Дані для перевірки: до ${fDayTime.format(new Date(C.data_until_utc))} (за Києвом).`)}</p>
     <div class="ctrl-row"><label>${T("Forecast made at", "Прогноз зроблено")} <select id="ck-snap">${C.snapshots.map((sn, i) => `<option value="${i}">${snapLabel(sn)}</option>`).join("")}</select></label>
       <label>${T("Add a place", "Додати місце")} <select id="ck-unit"><option value="">${T("choose…", "оберіть…")}</option><optgroup label="${T("Districts", "Райони")}">${opts("raion")}</optgroup><optgroup label="${T("Oblasts", "Області")}">${opts("oblast")}</optgroup></select></label></div>
-    <div id="ck-summary"></div><div class="grid2" id="ck-cards"></div></div>`;
+    ${S.stale ? `<p class="note">${T("Hourly updates are paused, so no newer forecasts are being saved; the list grows again when they resume.", "Щогодинне оновлення призупинено, тож новіші прогнози не зберігаються; список поповниться, коли оновлення відновляться.")}</p>` : ""}
+    <div id="ck-model"></div><div id="ck-summary"></div><div class="grid2" id="ck-cards"></div></div>`;
   let extra = null;
   const draw = () => {
     const sn = C.snapshots[+$("#ck-snap").value];
     const sm = sn.summary_raion, so = sn.summary_oblast;
+    // which models made this forecast; outcomes always use the current (corrected, D58) data
+    $("#ck-model").innerHTML = `<p class="note">${sn.models_trained_utc
+      ? T(`Made by the models trained on data up to ${fDayTime.format(new Date(sn.models_trained_utc))} (corrected data, with neighbouring districts).`,
+          `Зроблено моделями, навченими на даних до ${fDayTime.format(new Date(sn.models_trained_utc))} (виправлені дані, з сусідніми районами).`)
+      : T("Made by the <b>deadline models</b> (before the 13 Oct data fix). What really happened is measured on the corrected data, where an alert for one community no longer counts for its whole district. These old forecasts treated Kharkivskyi district as permanently under alert (a chance near 0%), so they score poorly there.",
+          "Зроблено <b>моделями версії на дедлайн</b> (до виправлення даних 13 жовтня). Що сталося насправді, виміряно на виправлених даних, де тривога однієї громади більше не вважається тривогою всього району. Ці старі прогнози вважали Харківський район постійно під тривогою (шанс близько 0%), тож там вони мають погані результати.")}</p>`;
     const known = sm.blocks_known > 0;
     $("#ck-summary").innerHTML = known ? `<div class="tiles four">
         <div class="tile"><div class="v">${pct(sm.avg_forecast_alert_blocks)} vs ${pct(sm.avg_forecast_quiet_blocks)}</div><div class="k">${T("all districts: average forecast for 3-hour blocks where an alert started vs blocks without one", "усі райони: середній прогноз для 3-годинних блоків, де тривога почалася, проти блоків без неї")}</div></div>

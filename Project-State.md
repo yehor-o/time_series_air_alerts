@@ -22,6 +22,11 @@ session 4's code is on the work branch `claude/great-brown-p08vo2`, **not in `ma
   the deadline version. Generated `site/data/` is **not** committed (the hourly run writes it on `main`).
 - **No fair test yet** for the corrected version: the old test weeks are used up; needs 2–4 new weeks (from ~27 Oct / ~10 Nov).
 - Tests: 21 (new: `tests/test_alert_tables.py`; local/neighbour leakage tests, checked to fail on a planted leak).
+- **Final site version** (user, 2026-10-13: "the next Netlify version will be our final"): banner "Hourly updates are paused …" when
+  the forecast is > 2 h old (panel heading "At the forecast time"); "How good is it?" section 9 (13 Oct update + validation chart);
+  Forecast check notes which models made each forecast (old snapshots = deadline models, scored on corrected data); About and
+  Replay updated (neighbours, corrections, paused updates). Hourly runs stay **paused** (user: one frozen forecast from the latest
+  API data). Shipping = merge with `[skip netlify]` + one manual live run (= one Netlify update).
 
 ## Live site
 **https://air-alert-forecast-ua.netlify.app**: Netlify publishes `site/` from `main`.

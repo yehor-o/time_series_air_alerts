@@ -31,6 +31,8 @@ nav button { margin-left: 6px; }
 nav button.on, .controls button.on { background: var(--accent); color: #fff; border-color: var(--accent); }
 #sample-banner { background: #5a3a00; color: #ffd98a; text-align: center; padding: 4px; font-weight: 600; font-size: 12px; }
 #warn { background: #241a1a; color: #f0b8b8; text-align: center; font-size: 12px; padding: 3px; }
+#stale { background: #2a2414; color: #f0d9a0; text-align: center; font-size: 12.5px; padding: 4px 16px; }
+html[data-theme="light"] #stale { background: #fbf3df; color: #6b5310; }
 main { height: calc(100% - 92px); }
 .page { display: none; height: 100%; }
 .page.on { display: flex; }

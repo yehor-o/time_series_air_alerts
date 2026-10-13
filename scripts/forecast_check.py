@@ -24,8 +24,8 @@ FEATURED = ["м. Київ|м. Київ", "Харківська область|Х
 KEEP = ("p1", "p3", "cnt", "hrs", "next24")
 
 
-def snapshot(t, blocks, raion, oblast):
-    return {"forecast_time_utc": t, "block_starts_utc": blocks[:8],
+def snapshot(t, blocks, raion, oblast, models_trained=None):
+    return {"forecast_time_utc": t, "block_starts_utc": blocks[:8], "models_trained_utc": models_trained,
             "raion": {u: {k: v[k] for k in KEEP} for u, v in raion.items()},
             "oblast": {u: {k: v[k] for k in KEEP} for u, v in oblast.items()}}
 
@@ -50,7 +50,7 @@ def main(git_commit=None):
         save(from_git(git_commit))
     now = json.loads((REP / "now_predictions.json").read_text())
     if pd.Timestamp(now["forecast_time_utc"]).tz_convert("Europe/Kyiv").hour in (0, 12):  # archive the 00:00 / 12:00 Kyiv forecasts only
-        save(snapshot(now["forecast_time_utc"], now["block_starts_utc"], now["raion"], now["oblast"]))
+        save(snapshot(now["forecast_time_utc"], now["block_starts_utc"], now["raion"], now["oblast"], now.get("models_trained_utc")))
 
     pan = {lv: pd.read_parquet(P / f"panel_{lv}.parquet", columns=["time", "unit", "y_start_1h", "y_count_24h", "y_hours_24h"])
            for lv in ("raion", "oblast")}
@@ -62,7 +62,9 @@ def main(git_commit=None):
         s = json.loads(f.read_text())
         t = pd.Timestamp(s["forecast_time_utc"])
         bst = [pd.Timestamp(b) for b in s["block_starts_utc"]]
+        # snapshots saved before 13 Oct 2026 carry no model date: they come from the deadline models (before the D58 data fix)
         res = {"forecast_time_utc": s["forecast_time_utc"], "block_starts_utc": s["block_starts_utc"],
+               "models_trained_utc": s.get("models_trained_utc"),
                "known_until_utc": min(data_end, t + pd.Timedelta("24h")).isoformat()}
         for lv in ("raion", "oblast"):
             pv = pan[lv][(pan[lv].time >= t) & (pan[lv].time < t + pd.Timedelta("24h"))]
