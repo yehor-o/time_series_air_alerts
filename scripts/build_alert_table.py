@@ -130,7 +130,7 @@ def main():
     snapshot = archive.start.max().ceil("min")
     universe = raion_universe(official)
 
-    labeled = label_official(official, aau)
+    labeled = raw_labels = label_official(official, aau)  # raw_labels: the source as it is, saved below
     off_holes = official_holes(official[official.start < OFFICIAL_LAST], volunteer)
     labeled = clip_to_holes(labeled, off_holes)
     labeled, fixes = apply_fixes(labeled)
@@ -151,7 +151,7 @@ def main():
     local.to_parquet(OUT / "alerts_local.parquet")
     obl.to_parquet(OUT / "alerts_oblast.parquet")
     masks.to_parquet(OUT / "masks.parquet")
-    labeled[["row_id", "oblast", "raion", "hromada", "loc_level", "start", "end", "kind", "label_how"]].to_parquet(OUT / "official_labels.parquet")
+    raw_labels[["row_id", "oblast", "raion", "hromada", "loc_level", "start", "end", "kind", "label_how"]].to_parquet(OUT / "official_labels.parquet")
 
     # ---- report ----
     L = []
