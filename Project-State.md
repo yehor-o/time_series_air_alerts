@@ -5,6 +5,15 @@ Merged as PR #17 (`[skip netlify]`); one manual live run (#7, 11:30–11:47 UTC)
 the latest API data = the one Netlify update. Hourly runs stay paused (frozen forecast, user's choice). This file's last edit is
 on the work branch only, to avoid another Netlify update._ The deadline version (2026-10-12 23:59 Kyiv) is **done and live**.
 
+## Session 5 (2026-10-15): Forecast check update (D60), on the work branch, awaiting the user's approval
+- The live Forecast check showed only the two pre-fix forecasts (Kharkivskyi 0% everywhere). Added: the corrected models'
+  published forecast of 13 Oct 14:00 (archived from git `de0fcbf`), re-runs of 11 and 12 Oct 12:00 (`predict_now.py --asof`,
+  trained only on data before each moment; `site/data/archive/rerun/`), scoring of partial first blocks (only hours after the
+  forecast), paired published/re-run cards with a comparison table. Data to 15 Oct 12:00 Kyiv (JustJimer `b77413ed`).
+- District AUC, published → re-run: 11 Oct 0.791 → 0.812, 12 Oct 0.805 → 0.817; oblast 0.808 → 0.836, 0.793 → 0.800.
+  13 Oct published (corrected models): 0.779 districts, 0.747 oblasts. Kharkivskyi: re-runs 66–88% per block, counts in range.
+- Tests: 23. Not published: needs the user's approval (one Netlify update).
+
 ## Session 4 (2026-10-13), on the work branch only
 - **D58 (Accepted): local alerts are not district alerts.** Hromada/city alerts used to count for their whole district; Lyptsi
   hromada (one alert 2024-05-12 → 2026-01-06, again since 2026-03-10) made Kharkivskyi district and Kharkiv oblast look
