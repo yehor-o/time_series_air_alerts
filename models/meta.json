@@ -67,19 +67,19 @@
   ]
  },
  "timing_prior": {
-  "raion": 0.2594986210019347,
-  "oblast": 0.26211873638344224
+  "raion": 0.26046282753829314,
+  "oblast": 0.2627017912428129
  },
- "trained_utc": "2026-10-13T09:00:00+00:00",
- "data_until_utc": "2026-10-13T09:00:00+00:00",
+ "trained_utc": "2026-10-14T21:00:00+00:00",
+ "data_until_utc": "2026-10-14T21:00:00+00:00",
  "coverage": {
   "raion": {
    "y_count_24h": {
-    "inside_25_75_range": 0.6555122048819528,
+    "inside_25_75_range": 0.6544617847138856,
     "rows": 19992
    },
    "y_hours_24h": {
-    "inside_25_75_range": 0.5272609043617447,
+    "inside_25_75_range": 0.5276610644257703,
     "rows": 19992
    }
   },
@@ -97,11 +97,11 @@
  "data_versions": {
   "vadimkin": {
    "repo": "Vadimkin/ukrainian-air-raid-sirens-dataset",
-   "commit": "1e5d1b46f4e401240f0759ed48f5a326ef53f041"
+   "commit": "22d0443d1d1cdf6a0a413c6d15c3078b5ed26127"
   },
   "justjimer": {
    "repo": "JustJimer/ukraine-air-alert-stats",
-   "commit": "f7b33ebc78a711a78ce45ec03318fcb05996fbb0"
+   "commit": "b7e2c264661444c88bfdd1c007f0c2110ebe79f9"
   }
  }
 }
