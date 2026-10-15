@@ -31,8 +31,8 @@ Details in `Project-State.md`; plans for the next steps in `docs/next_steps.md`.
 - [ ] Fair test of the corrected version on new weeks (from ~27 Oct for 2 weeks, ~10 Nov for 4)
 - [ ] Merge the work branch into main when the user says so; then one manual live run (hourly runs are paused)
 
-- [ ] **D60 Forecast check update** (13 Oct corrected-model forecast + re-runs of 11/12 Oct + partial-block scoring): done on
-      the work branch 2026-10-15, **waiting for the user's approval before publishing** (one Netlify update)
+- [x] **D60 Forecast check update** (13 Oct corrected-model forecast + re-runs of 11/12 Oct + partial-block scoring): done on
+      the work branch 2026-10-15; approved (option B: merge + one live run), published 2026-10-15
 
 ## Next (planned, need approval; see `docs/next_steps.md`)
 1. [ ] **Task 5: keep the repo small** (D54): live data on a `live-data` branch + Netlify build hook; models as GitHub Releases; archive cleanup (~1.5–2 h)

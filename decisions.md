@@ -506,7 +506,7 @@ Alternatives: count local alerts only for their first 12 h (simpler, but still m
 - Alternatives: leave the data as it is (the validation weeks would score a fake 5-day alert); drop the outage days completely
   (loses the oblast truth that the volunteer source does have).
 
-## D60. Forecast check: the corrected models' forecast and re-runs of the old ones — Proposed (2026-10-15, user asked for it)
+## D60. Forecast check: the corrected models' forecast and re-runs of the old ones — Accepted (user, 2026-10-15: "option B. go ahead")
 - The page had only the two forecasts the deadline models published (11 and 12 Oct, 12:00 Kyiv), which still show the D58 bug
   (Kharkivskyi 0% in every block, "0–0 alerts"; 10–12 alerts happened). Saved forecasts are never changed, so the fix is to add:
   1. the forecast the corrected models **published** on 13 Oct, 14:00 Kyiv (live run #7, commit `de0fcbf`), archived from git;
