@@ -841,17 +841,22 @@ function drawCalibration(host, cal) {
 // ---------- forecast check: saved forecasts vs what happened ----------
 function initCheck() {
   const C = S.D.check, M = S.D.meta;
-  const snapLabel = (sn) => `${fDayTime.format(new Date(sn.forecast_time_utc))} ${T("(Kyiv)", "(за Києвом)")}`;
+  const snapLabel = (sn) => `${fDayTime.format(new Date(sn.forecast_time_utc))} ${T("(Kyiv)", "(за Києвом)")} · ${sn.models_trained_utc
+    ? T("corrected models", "виправлені моделі") : sn.rerun ? T("deadline models + re-run", "моделі на дедлайн + повторний прогноз") : T("deadline models", "моделі на дедлайн")}`;
   const opts = (lv) => Object.keys(M.units[lv]).sort((a, b) => unitName(a, lv).localeCompare(unitName(b, lv)))
     .map((id) => `<option value="${lv}|${id}">${unitName(id, lv)}</option>`).join("");
   $("#check").innerHTML = `<div class="docbody wide">
     <h2>${T("Forecast check: did the forecast come true?", "Перевірка прогнозу: чи справдився прогноз?")}</h2>
     <p>${T(`Every forecast this site publishes is saved. Once the next 24 hours have passed, it is compared here with what really
       happened: did a new alert start in each 3-hour block, how many alerts were there, and how many hours under alert.
-      The saved forecast is never changed afterwards. Data for the check: up to ${fDayTime.format(new Date(C.data_until_utc))} (Kyiv).`,
+      The saved forecast is never changed afterwards. For the forecasts made before the 13 Oct data fix, a <b>re-run</b> with the corrected
+      models (trained only on data from before that moment) is shown next to them for comparison; it is marked as a re-run, never as published.
+      Data for the check: up to ${fDayTime.format(new Date(C.data_until_utc))} (Kyiv).`,
       `Кожен прогноз, який публікує сайт, зберігається. Коли минають наступні 24 години, тут його порівнюють з тим, що сталося насправді:
       чи почалася нова тривога в кожному 3-годинному блоці, скільки було тривог і скільки годин під тривогою. Збережений прогноз
-      потім ніколи не змінюється. Дані для перевірки: до ${fDayTime.format(new Date(C.data_until_utc))} (за Києвом).`)}</p>
+      потім ніколи не змінюється. Для прогнозів, зроблених до виправлення даних 13 жовтня, поруч показано <b>повторний прогноз</b>
+      виправленими моделями (навченими лише на даних до того моменту); його позначено як повторний, а не опублікований.
+      Дані для перевірки: до ${fDayTime.format(new Date(C.data_until_utc))} (за Києвом).`)}</p>
     <div class="ctrl-row"><label>${T("Forecast made at", "Прогноз зроблено")} <select id="ck-snap">${C.snapshots.map((sn, i) => `<option value="${i}">${snapLabel(sn)}</option>`).join("")}</select></label>
       <label>${T("Add a place", "Додати місце")} <select id="ck-unit"><option value="">${T("choose…", "оберіть…")}</option><optgroup label="${T("Districts", "Райони")}">${opts("raion")}</optgroup><optgroup label="${T("Oblasts", "Області")}">${opts("oblast")}</optgroup></select></label></div>
     ${S.stale ? `<p class="note">${T("Hourly updates are paused, so no newer forecasts are being saved; the list grows again when they resume.", "Щогодинне оновлення призупинено, тож новіші прогнози не зберігаються; список поповниться, коли оновлення відновляться.")}</p>` : ""}
@@ -862,8 +867,10 @@ function initCheck() {
     const sm = sn.summary_raion, so = sn.summary_oblast;
     // which models made this forecast; outcomes always use the current (corrected, D58) data
     $("#ck-model").innerHTML = `<p class="note">${sn.models_trained_utc
-      ? T(`Made by the models trained on data up to ${fDayTime.format(new Date(sn.models_trained_utc))} (corrected data, with neighbouring districts).`,
-          `Зроблено моделями, навченими на даних до ${fDayTime.format(new Date(sn.models_trained_utc))} (виправлені дані, з сусідніми районами).`)
+      ? T(`Published at the time by the <b>corrected models</b> (trained on data up to ${fDayTime.format(new Date(sn.models_trained_utc))}; corrected data, with neighbouring districts).`,
+          `Опубліковано тоді <b>виправленими моделями</b> (навчені на даних до ${fDayTime.format(new Date(sn.models_trained_utc))}; виправлені дані, із сусідніми районами).`)
+      : sn.rerun ? T(`Two forecasts for the same moment. <b>Left: published</b> at the time by the deadline models (before the 13 Oct data fix); they treated Kharkivskyi district as permanently under alert. <b>Right: re-run</b> on 13–15 Oct with the corrected models, trained only on data from before ${fDayTime.format(new Date(sn.forecast_time_utc))}, so they could not see what happened next. The re-run was not shown on the site at that time. The outcome is measured the same way for both, on the corrected data.`,
+          `Два прогнози на той самий момент. <b>Ліворуч: опублікований</b> тоді моделями на дедлайн (до виправлення даних 13 жовтня); вони вважали Харківський район постійно під тривогою. <b>Праворуч: повторний прогноз</b>, зроблений 13–15 жовтня виправленими моделями, навченими лише на даних до ${fDayTime.format(new Date(sn.forecast_time_utc))}, тож вони не могли бачити, що сталося далі. Тоді повторного прогнозу на сайті не було. Результат для обох виміряно однаково, на виправлених даних.`)
       : T("Made by the <b>deadline models</b> (before the 13 Oct data fix). What really happened is measured on the corrected data, where an alert for one community no longer counts for its whole district. These old forecasts treated Kharkivskyi district as permanently under alert (a chance near 0%), so they score poorly there.",
           "Зроблено <b>моделями версії на дедлайн</b> (до виправлення даних 13 жовтня). Що сталося насправді, виміряно на виправлених даних, де тривога однієї громади більше не вважається тривогою всього району. Ці старі прогнози вважали Харківський район постійно під тривогою (шанс близько 0%), тож там вони мають погані результати.")}</p>`;
     const known = sm.blocks_known > 0;
@@ -873,10 +880,21 @@ function initCheck() {
         <div class="tile"><div class="v">${sm.count_inside_range == null ? "–" : pct(sm.count_inside_range)}</div><div class="k">${T("districts where the number of alerts fell inside the forecast range", "районів, де кількість тривог потрапила в прогнозний діапазон")}</div></div>
         <div class="tile"><div class="v">${sm.hours_inside_range == null ? "–" : pct(sm.hours_inside_range)}</div><div class="k">${T("districts where the hours under alert fell inside the forecast range", "районів, де години під тривогою потрапили в прогнозний діапазон")}</div></div></div>`
       : `<p class="cap">${T("<b>Not checkable yet:</b> the 24 hours after this forecast have not passed in the data. The page fills in as new data arrives.", "<b>Поки не можна перевірити:</b> 24 години після цього прогнозу ще не минули в даних. Сторінка заповниться, щойно надійдуть нові дані.")}</p>`;
+    if (known && sn.rerun) {  // published vs re-run, same outcome data
+      const r = sn.rerun, f = (v) => (v == null ? "–" : f3(v)), p_ = (v) => (v == null ? "–" : pct(v));
+      const row = (name, a, b) => `<tr><td>${name}</td><td class="num">${f(a.summary_raion.auc)}</td><td class="num">${f(a.summary_oblast.auc)}</td><td class="num">${p_(a.summary_raion.avg_forecast_alert_blocks)} vs ${p_(a.summary_raion.avg_forecast_quiet_blocks)}</td><td class="num">${p_(a.summary_raion.count_inside_range)}</td><td class="num">${p_(a.summary_raion.hours_inside_range)}</td></tr>`;
+      $("#ck-summary").innerHTML += `<table class="ckcmp"><tr><th></th><th class="num">${T("AUC districts", "AUC райони")}</th><th class="num">${T("AUC oblasts", "AUC області")}</th><th class="num">${T("avg forecast: alert vs quiet blocks", "середній прогноз: блоки з тривогою / без")}</th><th class="num">${T("count in range", "кількість у діапазоні")}</th><th class="num">${T("hours in range", "години в діапазоні")}</th></tr>
+        ${row(T("Published (deadline models)", "Опублікований (моделі на дедлайн)"), sn)}${row(T("Re-run (corrected models)", "Повторний (виправлені моделі)"), r)}</table>`;
+    }
     const host = $("#ck-cards"); host.innerHTML = "";
     const list = C.featured.map((id) => ["raion", id]);
     if (extra) list.push(extra);
-    list.forEach(([lv, id]) => checkCard(host, sn, lv, id));
+    const rr = sn.rerun ? { ...sn, ...sn.rerun } : null;  // same moment and blocks, the re-run's forecasts
+    const tagPub = sn.models_trained_utc ? T("Published · corrected models", "Опубліковано · виправлені моделі") : T("Published · deadline models", "Опубліковано · моделі на дедлайн");
+    list.forEach(([lv, id]) => {
+      checkCard(host, sn, lv, id, rr ? tagPub : "");
+      if (rr) checkCard(host, rr, lv, id, T("Re-run · corrected models, trained only on data before this moment", "Повторний прогноз · виправлені моделі, навчені лише на даних до цього моменту"));
+    });
   };
   const first = C.snapshots.findIndex((sn) => sn.summary_raion.blocks_known > 0);  // open on the latest checkable forecast
   if (first >= 0) $("#ck-snap").value = String(first);
@@ -884,39 +902,46 @@ function initCheck() {
   $("#ck-unit").onchange = (e) => { extra = e.target.value ? e.target.value.split(/\|(.*)/s).slice(0, 2) : null; draw(); };
   draw();
 }
-function checkCard(host, sn, lv, id) {
+function checkCard(host, sn, lv, id, tag = "") {
   const u = sn[lv][id]; if (!u) return;
   const t0 = new Date(sn.forecast_time_utc).getTime();
-  const box = el("div", { className: "chart" }, `<div class="ctitle">${unitName(id, lv)}</div>`);
+  // a forecast made between the 00:00/12:00 blocks: its first block started `off` minutes before the forecast moment.
+  // Alerts (u.alerts) are in minutes from the forecast moment; the strip below runs from the first block's start.
+  const off = Math.max(0, (t0 - new Date(sn.block_starts_utc[0]).getTime()) / 6e4);
+  const box = el("div", { className: "chart" }, `<div class="ctitle">${unitName(id, lv)}</div>${tag ? `<div class="cktag">${tag}</div>` : ""}`);
   const cells = el("div", { className: "cells ck" });
   const known = (new Date(sn.known_until_utc).getTime() - t0) / 6e4;
   // per block: "new alert" (a new alert started), "still on" (no new start, but an earlier alert was running), "quiet"
-  const running = (i) => u.alerts.some(([a, e]) => a < (i + 1) * 180 && e > i * 180);
+  const running = (i) => u.alerts.some(([a, e]) => a < (i + 1) * 180 - off && e > Math.max(0, i * 180 - off));
   sn.block_starts_utc.forEach((b, i) => {
     const p = u.next24[i], y = u.actual_blocks[i];
     const mark = y == null ? `<span class="ckm unk">${T("not yet", "ще ні")}</span>`
       : y ? `<span class="ckm yes">${T("started", "нова")}</span>`
       : running(i) ? `<span class="ckm on">${T("still on", "триває")}</span>` : `<span class="ckm no">${T("quiet", "тихо")}</span>`;
-    const c = el("div", { className: "cell" }, `${fHour.format(new Date(b))}<b>${pct(p)}</b>`);
+    const lab = i === 0 && off > 0 ? T(`from ${fHour.format(new Date(t0))}`, `з ${fHour.format(new Date(t0))}`) : fHour.format(new Date(b));
+    const c = el("div", { className: "cell" }, `${lab}<b>${pct(p)}</b>`);
     c.style.background = rampColor(p); c.style.color = textOn(p);
     const w = el("div", { className: "ckcol" }); w.append(c); w.append(el("div", {}, mark)); cells.append(w);
   });
   box.append(el("div", { className: "cnote" }, T("Forecast: chance that a new alert starts in each 3-hour block (Kyiv time). Below: what happened.", "Прогноз: ймовірність, що нова тривога почнеться в кожному 3-годинному блоці (за Києвом). Нижче: що сталося.")));
   box.append(cells);
   // 24 h timeline of the actual alerts, drawn on the same 8 columns as the blocks; a white mark = an alert started
-  const W = 800, H = 26, x = (m) => (m / 1440) * W;
+  const W = 800, H = 26, x = (m) => Math.min(W, ((m + off) / 1440) * W);
   const svg = svgEl("svg", { viewBox: `0 0 ${W} ${H}`, width: "100%", height: H, preserveAspectRatio: "none", class: "cktl" });
   svg.append(svgEl("rect", { x: 0, y: 4, width: W, height: 18, fill: V.surface, stroke: V.line }));
+  if (off > 0) svg.append(svgEl("rect", { x: 0, y: 4, width: x(0), height: 18, fill: "#3a3f47", opacity: 0.85 }));  // before the forecast: not scored
   u.alerts.forEach(([a, e, lvl]) => {
     const r = svgEl("rect", { x: x(a), y: 4, width: Math.max(2, x(e) - x(a)), height: 18, fill: COL[lvl] || COL.unknown });
     r.onmousemove = (ev) => showTip(ev, `${fDayTime.format(new Date(t0 + a * 6e4))} – ${fHour.format(new Date(t0 + e * 6e4))}${lvl === "red" || lvl === "yellow" ? `<br><span class="chip ${lvl}">${lvlName(lvl)}</span>` : ""}${a === 0 ? `<br>${T("started before the forecast", "почалася до прогнозу")}` : ""}`);
     r.onmouseleave = () => (tip.hidden = true);
     svg.append(r);
   });
-  if (known < 1440) svg.append(svgEl("rect", { x: x(known), y: 4, width: W - x(known), height: 18, fill: "#3a3f47", opacity: 0.85 }));  // not known yet
+  if (known < 1440 - off) svg.append(svgEl("rect", { x: x(known), y: 4, width: W - x(known), height: 18, fill: "#3a3f47", opacity: 0.85 }));  // not known yet
   for (let k = 1; k < 8; k++) svg.append(svgEl("line", { x1: k * 100, x2: k * 100, y1: 0, y2: H, stroke: V.bg, "stroke-width": 3 }));
   u.alerts.forEach(([a]) => { if (a > 0) svg.append(svgEl("rect", { x: Math.min(x(a), W - 4), y: 0, width: 4, height: H, fill: V.text })); });  // starts, drawn on top
   box.append(svg);
+  if (off > 0) box.append(el("div", { className: "cnote" }, T(`This forecast was made at ${fHour.format(new Date(t0))}, inside the first block: only the part after that counts (the grey part before it is not scored).`,
+    `Цей прогноз зроблено о ${fHour.format(new Date(t0))}, усередині першого блоку: враховується лише частина після цього (сіру частину до нього не оцінено).`)));
   box.append(el("div", { className: "cnote" }, T(`Actual alerts in the 24 hours after the forecast, aligned with the blocks above. White mark = an alert <b>started</b>; <span class="ckm yes">started</span> a new alert started in the block, <span class="ckm on">still on</span> an earlier alert was still running, <span class="ckm no">quiet</span> no alert.`,
     `Фактичні тривоги за 24 години після прогнозу, вирівняні з блоками вгорі. Біла позначка = тривога <b>почалася</b>; <span class="ckm yes">нова</span> у блоці почалася нова тривога, <span class="ckm on">триває</span> ще тривала попередня, <span class="ckm no">тихо</span> тривоги не було.`)));
   const ok = (v, r) => (v == null ? `<span class="ckm unk">${T("not yet known", "ще невідомо")}</span>` : v >= r[0] && v <= r[1] ? `<span class="ckm yes2">${T("inside the range", "у діапазоні")}</span>` : `<span class="ckm out">${T("outside the range", "поза діапазоном")}</span>`);

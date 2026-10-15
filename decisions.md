@@ -506,6 +506,19 @@ Alternatives: count local alerts only for their first 12 h (simpler, but still m
 - Alternatives: leave the data as it is (the validation weeks would score a fake 5-day alert); drop the outage days completely
   (loses the oblast truth that the volunteer source does have).
 
+## D60. Forecast check: the corrected models' forecast and re-runs of the old ones — Accepted (user, 2026-10-15: "option B. go ahead")
+- The page had only the two forecasts the deadline models published (11 and 12 Oct, 12:00 Kyiv), which still show the D58 bug
+  (Kharkivskyi 0% in every block, "0–0 alerts"; 10–12 alerts happened). Saved forecasts are never changed, so the fix is to add:
+  1. the forecast the corrected models **published** on 13 Oct, 14:00 Kyiv (live run #7, commit `de0fcbf`), archived from git;
+  2. **re-runs** of 11 and 12 Oct, 12:00 Kyiv with the corrected pipeline (`predict_now.py --asof`): the panel is cut at that
+     moment, every model is trained only on rows whose outcome was known before it, inputs come from before it. Shown next to
+     the published forecast and always labelled "re-run", never as published.
+- Scoring fix: a forecast made inside a 3-hour block (13 Oct 14:00, block 12:00–15:00) is scored only on the hours after the
+  forecast moment; the card shades the part before it and labels the block "from 14:00" (test: `tests/test_forecast_check.py`).
+- Honest limits of the re-runs: the corrected design (D58 data rule, D55 neighbours) was chosen on 13 Oct, on validation weeks
+  from before 13 Sep, so the choice did not use 11–13 Oct; the data is today's copy (late corrections to the source after those
+  days are included). Two forecast moments are a very small sample, not a test.
+
 ---
 # Planned after the deadline (2026-10-12) — all Proposed; plans in docs/next_steps.md
 

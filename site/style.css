@@ -256,3 +256,6 @@ p.note { color: var(--text-secondary); font-size: 13.5px; line-height: 1.5; }
 .cell.older { outline: 1.5px dashed var(--text-primary); outline-offset: -3px; }
 .controls button.past { opacity: .55; }
 .now-on.big + h3 { margin-top: 14px; }
+
+.cktag { font-size: 11.5px; color: var(--text-muted); margin: -2px 0 6px; letter-spacing: .02em; }
+table.ckcmp { margin: 10px 0 14px; font-size: 13px; }

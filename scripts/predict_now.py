@@ -22,8 +22,12 @@ Modes (D51, D52):
              The week view comes from the latest 00:00/12:00 Kyiv issue time (the timing model's training setup);
              blocks that have already ended are dropped. history_pred_* is not produced (export_site keeps a rolling log).
 
-Usage: PYTHONPATH=.:scripts python scripts/predict_now.py [--train | --predict]
-Output: reports/now_predictions.json (default, --predict), models/ (--train)
+  --asof T  re-run (Forecast check, D60): like the default mode, but as if it were time T (a 00:00/12:00 Kyiv hour): the panel is
+             cut at T, so every model is trained only on rows whose outcome was known before T, and the forecast uses inputs
+             from before T only. Nothing is saved except reports/rerun_<T>.json; no history strip.
+
+Usage: PYTHONPATH=.:scripts python scripts/predict_now.py [--train | --predict | --asof 2026-10-12T09:00Z]
+Output: reports/now_predictions.json (default, --predict), models/ (--train), reports/rerun_<T>.json (--asof)
 """
 import argparse
 import gzip
@@ -99,7 +103,7 @@ def quant(tr, w, feats, y, X, n=200, alphas=(.25, .75)):
     return [m.predict(X[feats]) for m in quant_models(tr, w, feats, y, n, alphas)]
 
 
-def main(mode="full"):
+def main(mode="full", asof=None):
     """mode: full (train + forecast at the latest 00/12 Kyiv hour), train (save models), predict (saved models, latest hour)."""
     t0 = time.time()
     log = lambda m: print(f"[{time.time() - t0:6.0f}s] {m}", flush=True)
@@ -109,10 +113,13 @@ def main(mode="full"):
     meta = json.loads((MOD / "meta.json").read_text()) if mode == "predict" else {}
     for level in ("raion", "oblast"):
         pan = pd.read_parquet(P / f"panel_{level}.parquet")
+        if asof is not None:  # re-run as if at `asof`: no row after it (targets of earlier rows are purged by training())
+            pan = pan[pan.time <= asof]
         # issue time for training / the week view: the latest 00:00 / 12:00 Kyiv hour in the data (the timing model is
         # trained on those issue times). Live forecasts (predict) use the latest hour. Nothing after t is used.
         t_w = issue_times(pan.time.max() - pd.Timedelta("2D"), pan.time.max())[-1]
         t = pan.time.max() if mode == "predict" else t_w
+        assert asof is None or t == asof, f"--asof {asof} is not a 00:00/12:00 Kyiv hour in the data (got {t})"
         lk = t_w + pd.Timedelta("1h")  # training targets must be known before this
         start = (t - pd.Timedelta("400D") if level == "raion" else FIRST) if mode != "predict" else t - pd.Timedelta("2D")
         df = pan[pan.time >= start].copy()
@@ -131,7 +138,7 @@ def main(mode="full"):
                 y = f"y_start_{h}h"
                 tr, w = training(df[df[y].notna()], lk, h, level)
                 M[f"p{h}"] = lgb_cls(**TUNED[level]["params"]).fit(tr[feats], tr[y], sample_weight=w, categorical_feature=["oblast_code"])
-                if h == 3 and mode == "full":  # history strip: the 7 days before t, from a model trained only on data before that week
+                if h == 3 and mode == "full" and asof is None:  # history strip: the 7 days before t, from a model trained only on data before that week
                     h0 = t - pd.Timedelta("168h")
                     trh, wh = training(df[df[y].notna()], h0, h, level)
                     mh = lgb_cls(**TUNED[level]["params"]).fit(trh[feats], trh[y], sample_weight=wh, categorical_feature=["oblast_code"])
@@ -233,7 +240,9 @@ def main(mode="full"):
         (MOD / "meta.json").write_text(json.dumps(meta, indent=1), encoding="utf-8")
         log(f"meta saved; models: {sum(f.stat().st_size for f in MOD.glob('*.txt.gz')) / 1e6:.1f} MB")
     else:
-        (REP / "now_predictions.json").write_text(json.dumps(out, ensure_ascii=False), encoding="utf-8")
+        name = f"rerun_{asof:%Y-%m-%dT%H}Z.json" if asof is not None else "now_predictions.json"
+        out["models_trained_utc"] = out["forecast_time_utc"] if asof is not None else out.get("models_trained_utc")
+        (REP / name).write_text(json.dumps(out, ensure_ascii=False), encoding="utf-8")
     log("done")
 
 
@@ -242,5 +251,7 @@ if __name__ == "__main__":
     g = ap.add_mutually_exclusive_group()
     g.add_argument("--train", action="store_true")
     g.add_argument("--predict", action="store_true")
+    g.add_argument("--asof", help="re-run as if at this time (UTC, a 00:00/12:00 Kyiv hour)")
     a = ap.parse_args()
-    main("train" if a.train else "predict" if a.predict else "full")
+    asof = pd.Timestamp(a.asof).tz_convert("UTC") if a.asof else None
+    main("train" if a.train else "predict" if a.predict else "full", asof)
