@@ -1,6 +1,6 @@
 # Data quality report
 
-Built 2026-10-13 10:46 UTC from Vadimkin `bf0c323c`, JustJimer `7abc556b`, @air_alert_ua posts #1–#338380 (338,360 posts), @war_monitor 46,492 posts.
+Built 2026-10-15 15:26 UTC from Vadimkin `bf0c323c`, JustJimer `7abc556b`, @air_alert_ua posts #1–#338380 (338,360 posts), @war_monitor 46,492 posts.
 
 ## 1. Official rows by message type (D25)
 
@@ -33,16 +33,16 @@ no message found        17
 ## 2. Raion alert table
 
 - Raions: 119 in 24 oblasts (incl. Kyiv City; Luhansk and Crimea excluded).
-- Raw raion events (after disaggregation): 861,592; events whose raion is unknown (dropped): 0.
-- Merged raion alerts: 474,209, from 2022-02-25 to 2026-10-13 10:31 UTC.
-- Merged oblast alerts: 94,160.
+- Raw raion events (after disaggregation): 862,696; events whose raion is unknown (dropped): 0.
+- Merged raion alerts: 475,313, from 2022-02-25 to 2026-10-15 08:20 UTC.
+- Merged oblast alerts: 94,444.
 
 Sources of merged raion alerts:
 
 ```
 sources
 official            451444
-archive              17431
+archive              18535
 volunteer             5119
 archive+official       215
 ```
@@ -56,12 +56,12 @@ year
 2023   90836        39.0
 2024  117218        41.7
 2025   96895        56.0
-2026   90558        48.4
+2026   91662        48.5
 ```
 
 ## 2b. Local (hromada/city) alerts, kept apart from raion alerts (D58)
 
-- Merged local alerts: 9,689 in 136 hromadas/cities; they are model inputs and site notes, never the raion's own alert.
+- Merged local alerts: 9,737 in 136 hromadas/cities; they are model inputs and site notes, never the raion's own alert.
 
 ## 2c. Guards: very long alerts and units that are almost always under alert (D58)
 
@@ -95,9 +95,9 @@ Local alerts longer than 3 days: 6
 ```
                   oblast               raion                                   hromada                            start                       end  days
       Харківська область   Харківський район            Липецька територіальна громада        2024-05-12 08:37:29+00:00 2026-01-06 09:53:57+00:00 604.1
-      Харківська область   Харківський район            Липецька територіальна громада        2026-03-10 14:01:38+00:00 2026-10-13 10:32:00+00:00 216.9
-Дніпропетровська область Нікопольський район Червоногригорівська територіальна громада        2026-09-17 10:06:55+00:00 2026-10-13 10:32:00+00:00  26.0
-Дніпропетровська область Нікопольський район          Покровська територіальна громада        2026-09-17 10:06:09+00:00 2026-10-13 10:32:00+00:00  26.0
+      Харківська область   Харківський район            Липецька територіальна громада        2026-03-10 14:01:38+00:00 2026-10-15 08:21:00+00:00 218.8
+Дніпропетровська область Нікопольський район Червоногригорівська територіальна громада        2026-09-17 10:06:55+00:00 2026-10-15 08:21:00+00:00  27.9
+Дніпропетровська область Нікопольський район          Покровська територіальна громада        2026-09-17 10:06:09+00:00 2026-10-15 08:21:00+00:00  27.9
 Дніпропетровська область Нікопольський район        Нікопольська територіальна громада 2026-10-02 15:33:26.384000+00:00 2026-10-07 09:02:34+00:00   4.7
 Дніпропетровська область Нікопольський район        Нікопольська територіальна громада 2026-09-25 05:03:55.317000+00:00 2026-09-28 05:25:25+00:00   3.0
 ```
@@ -156,7 +156,7 @@ oblast
 
 ## 3. Yellow/red (reform period, archive)
 
-- Raion alerts with a level: 17,623; share red: 0.36.
+- Raion alerts with a level: 18,727; share red: 0.35.
 
 ## 4. Holes in the archive and volunteer patches (D26)
 
